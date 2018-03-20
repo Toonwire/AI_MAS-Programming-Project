@@ -12,7 +12,7 @@ public class RandomWalkClient {
 		}
 
 		public String act() {
-			return Command.every[rand.nextInt( Command.every.length )].toString();
+			return MultiCommand.every[rand.nextInt( MultiCommand.every.length )].toString();
 		}
 	}
 

@@ -2,32 +2,32 @@ package sampleclients;
 
 import java.util.LinkedList;
 
-public class Command {
+public class MultiCommand {
 	static {
-		LinkedList< Command > cmds = new LinkedList< Command >();
+		LinkedList< MultiCommand > cmds = new LinkedList< MultiCommand >();
 		for ( dir d : dir.values() ) {
-			cmds.add( new Command( d ) );
+			cmds.add( new MultiCommand( d ) );
 		}
 
 		for ( dir d1 : dir.values() ) {
 			for ( dir d2 : dir.values() ) {
-				if ( !Command.isOpposite( d1, d2 ) ) {
-					cmds.add( new Command( type.Push, d1, d2 ) );
+				if ( !MultiCommand.isOpposite( d1, d2 ) ) {
+					cmds.add( new MultiCommand( type.Push, d1, d2 ) );
 				}
 			}
 		}
 		for ( dir d1 : dir.values() ) {
 			for ( dir d2 : dir.values() ) {
 				if ( d1 != d2 ) {
-					cmds.add( new Command( type.Pull, d1, d2 ) );
+					cmds.add( new MultiCommand( type.Pull, d1, d2 ) );
 				}
 			}
 		}
 
-		every = cmds.toArray( new Command[0] );
+		every = cmds.toArray( new MultiCommand[0] );
 	}
 
-	public final static Command[] every;
+	public final static MultiCommand[] every;
 
 	private static boolean isOpposite( dir d1, dir d2 ) {
 		return d1.ordinal() + d2.ordinal() == 3;
@@ -46,13 +46,13 @@ public class Command {
 	public final dir dir1;
 	public final dir dir2;
 
-	public Command( dir d ) {
+	public MultiCommand( dir d ) {
 		actType = type.Move;
 		dir1 = d;
 		dir2 = null;
 	}
 
-	public Command( type t, dir d1, dir d2 ) {
+	public MultiCommand( type t, dir d1, dir d2 ) {
 		actType = t;
 		dir1 = d1;
 		dir2 = d2;
