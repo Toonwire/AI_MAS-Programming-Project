@@ -37,7 +37,12 @@ public class AIClient {
 			Arrays.asList("blue", "red", "green", "cyan", "magenta", "orange", "pink", "yellow"));
 	private static final String DEFAULT_COLOR = "blue";
 
-
+	private static LinkedList<MultiNode> combinedSolution;
+	private static Pos[][] requests;
+	private static String[] actions;
+	private static Node[] currentStates;
+	private static MultiNode state;
+	private static int[] agentOrder;
 	
 	public class Agent {
 		private char id;
@@ -286,26 +291,11 @@ public class AIClient {
 				System.err.println("COULD NOT FIND SOLUTION");
 			}
 		}
-		
-//		for (int i = 0; i < solutions.length; i++) {
-//			for(int j = i+1; j < solutions.length; j++) {
-//				for(int k = 0; k < solutions[i].size(); k++) {
-//					Pos p1 = solutions[i].get(k).getRequired();
-//					Pos p2 = solutions[j].get(k).getRequired();
-//
-//					System.err.println("CHECK CONFLICT FOR "+p1+ " "+p2);
-//					if(k>0 && solutions[i].size) {
-//						
-//					}
-//					if(k>0 && solutions[i].size() > 0 && solutions[i].get(k-1).getRequired().equals(p2)) {
-//						System.err.println("CONFLIIICT AT "+solutions[i].get(k).getRequired());
-//					}
-//					if(p1.equals(p2)) {
-//						System.err.println("CONFLIIICT AT "+solutions[i].get(k).getRequired());
-//					}
-//				}
-//			}
-//		}
+		combinedSolution = new LinkedList<>();
+		requests = new Pos[initialStates.size()][3];
+		actions = new String[initialStates.size()];
+		currentStates = new Node[initialStates.size()];
+		agentOrder = new int[initialStates.size()];
 
 		if (false) {// temp
 			// System.err.println(strategy.searchStatus());
@@ -318,130 +308,72 @@ public class AIClient {
 			
 			
 //			Initial State
-			MultiNode state = new MultiNode(client, boxes, agents);
-			LinkedList<MultiNode> combinedSolution = new LinkedList<>();
+			state = new MultiNode(client, boxes, agents);
 			combinedSolution.add(state);
 
-//			int maxSolution = 0;
-//			for (LinkedList<Node> l : solutions) {
-//				if (l.size() > maxSolution) {
-//					maxSolution = l.size();
-//				}
-//			}
-//			System.err.println(maxSolution);
 
-			//for (int j = 0; j < maxSolution; j++) {
-
-			Pos[] required = new Pos[initialStates.size()];
-			Pos[] requests = new Pos[initialStates.size()];
-			Pos[] hints = new Pos[initialStates.size()];
-			Node[] currentStates = new Node[initialStates.size()];
+			agentOrder[0] = 0;
+			agentOrder[1] = 1;
 			for(Agent a : initialStates.keySet()) {
 				currentStates[a.getID()] = initialStates.get(a);
 			}
-			
+			String act;
 			while(true) {
 				boolean done = true;
-				String act = "[";
-				for (int i = 0; i < solutions.length; i++) {
-					//Help others or own goal
-					Node node = currentStates[i];
-
-					//System.err.println("CURRENT STATE\n "+state);
+				for (int i = 0; i < solutions.length; i++) { //Current agent
+					int a1 = agentOrder[i];
+					Node currentNode = currentStates[a1];
+					
+					//Create solution to solve own problem
+					if((solutions[a1] == null || solutions[a1].isEmpty()) && !currentStates[a1].isGoalState()) {
+						solutions[a1] = createSolution(client, currentStates[a1].copy(), null);
+					}
+					
 					//Requests
-					for(int j = 0; j<i; j++) {
-						Pos pos = requests[j];
-						Pos pos2 = required[j];
-						if((pos != null && !node.isEmpty(pos)) || (pos2 != null && !node.isEmpty(pos2)) ) {
-							System.err.println(pos + " is not empty in "+node);
+					for(int j = 0; j < i; j++) { //Higher-order agents
+						int a2 = agentOrder[j];
+						Pos pos = requests[a2][0];
+						Pos pos2 = requests[a2][1];
+						if((pos != null && !currentNode.isEmpty(pos)) || (pos2 != null && !currentNode.isEmpty(pos2)) ) {
 							//Replan
 							LinkedList<Pos> positions = new LinkedList<>();
-							positions.add(new Pos(currentStates[j].agentRow, currentStates[j].agentCol));
-							positions.add(required[j]);
-							positions.add(pos);		
-							positions.add(hints[j]);
-							solutions[i] = createSolution(client, node.copy(), positions);
-
+							positions.add(new Pos(currentStates[a2].agentRow, currentStates[a2].agentCol));
+							positions.add(pos);
+							positions.add(pos2);		
+							positions.add(requests[a2][2]);
+							solutions[a1] = createSolution(client, currentNode.copy(), positions);
 							break;
 						}
 					}
 					
-					if (solutions[i] != null && !solutions[i].isEmpty()) {					
-						//Own goal
-						node = solutions[i].get(0);
+					actions[a1] = getAction(solutions, a1, i);
 
-						boolean conflict = false;
-						Pos p = node.getRequired();
-						// check for conflict with own plan
-						if((!state.isEmpty(p) && state.agents[p.row][p.col] != node.getAgent())
-								|| !(combinedSolution.get(combinedSolution.size()-1)).isEmpty(p)) {
-							conflict = true;
-
-							System.err.println(i+" has conflict2 at "+ p  + "in \n"+(combinedSolution.get(combinedSolution.size()-1)));
-						} else {
-							state = new MultiNode(state, i, node.action);
-							
-//							for(int j = 0; j<i; j++) {
-//								if(j != i) {
-//									Pos pos = required[j];
-//									if(pos != null && !state.isEmpty(pos)) {
-//										System.err.println(i+" has conflict at "+ pos  + "in \n"+state);
-//										conflict = true;
-//										break;
-//									}
-//								}
-//							}
-						}
-						
-						if(!conflict) {
-							System.err.println("NO FÀS");
-							act += node.action.toString();
-							currentStates[i] = node;
-							solutions[i].remove(0);
-							done = false;
-							//Add request
-							required[i] = null;
-							requests[i] = null;
-							hints[i] = null;
-							if(!solutions[i].isEmpty()) {
-								required[i] = solutions[i].get(0).getRequired();
-								if(solutions[i].size() > 1) {
-									requests[i] = solutions[i].get(1).getRequired();
-									if(solutions[i].size() > 2) {
-										hints[i] = solutions[i].get(2).getRequired();
-									}
-								}
-							}
-						} else {
-							act += "NoOp";
-
-							System.err.println("NOIO conflict");
-//							requests[i] = p;
-							solutions[i] = new LinkedList<>();
-						}	
-					} else {
-						act += "NoOp";
-						System.err.println("NOIO own goal");
-						if (!currentStates[i].isGoalState()) {
-//							System.err.println("REPLAN "+i+ " FROM "+ node);
-							solutions[i] = createSolution(client, currentStates[i].copy(), null);
-
-							System.err.println("SOLUTION "+ solutions[i]);
-							done = false;
-						}
+					
+					//At least one agent has a proper action
+					if(actions[a1] != "NoOp") {
+						done = false;
 					}
-					if (i < solutions.length - 1) {
-						act += ", ";
-					}
+					
 				}
+
 				if(done) {
 					break;
 				}
+				
+				//Create action string
+				act = "[";
+				for(int i = 0; i<actions.length; i++) {
+					act += actions[i];
+					if(i < actions.length-1) {
+						act += ", ";
+					}
+				}
 				act += "]";
+				
 				combinedSolution.add(state);
 				System.err.println(act);
 				System.out.println(act);
-				System.err.println(combinedSolution.get(combinedSolution.size()-1));
+//				System.err.println(combinedSolution.get(combinedSolution.size()-1));
 				 String response = serverMessages.readLine();
 				 if (response.contains("false")) {
 					 System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
@@ -450,42 +382,51 @@ public class AIClient {
 				 }
 			}
 		}
+	}
+	
+	private static String getAction(LinkedList<Node>[] solutions, int a, int i) {
+		if (solutions[a] != null && !solutions[a].isEmpty()) {
+			Node node = solutions[a].get(0);
+			
+			Pos p = node.getRequired();
 
-		// Sequential (temp solution not using MultiCommand yet)
-
-		// int solBef = 0;
-		// int solAft = initialStates.size() - 1;
-		// for (LinkedList<Node> solution : solutions) {
-		// if (solution != null) {
-		// for (Node node : solution) {
-		// String acts = "[";
-		// for (int i = 0; i < solBef; i++) {
-		// acts += "NoOp,";
-		// }
-		//
-		// acts += node.action.toString();
-		//
-		// for (int i = 0; i < solAft; i++) {
-		// acts += ",NoOp";
-		// }
-		//
-		// acts += "]";
-		// System.err.println(acts);
-		// System.out.println(acts);
-		// String response = serverMessages.readLine();
-		// if (response.contains("false")) {
-		// System.err.format("Server responsed with %s to the inapplicable action:
-		// %s\n", response, acts);
-		// System.err.format("%s was attempted in \n%s\n", acts, node.toString());
-		// break;
-		// }
-		// }
-		// }
-		//
-		// solBef++;
-		// solAft--;
-		// }
-
+			if((!state.isEmpty(p) && state.agents[p.row][p.col] != node.getAgent()) //conflict with other agents in same state
+					|| !(combinedSolution.get(combinedSolution.size()-1)).isEmpty(p)) { //conflict with previous state
+				return "NoOp";
+			} else {
+				MultiNode newState = new MultiNode(state, a, node.action);
+				for(int j = 0; j < i; j++) {
+					if(j != i) {
+						int a2 = agentOrder[j];
+						Pos pos = requests[a2][0];
+						if(pos != null && state.isEmpty(pos) && !newState.isEmpty(pos)) { //take free required cell
+							solutions[a] = null;
+							return "NoOp";
+						}
+					}
+				}
+				state = newState;
+			}
+			
+			node.action.toString();
+			currentStates[a] = node;
+			solutions[a].remove(0);
+			//Add request
+			requests[a][0] = null;
+			requests[a][1] = null;
+			requests[a][2] = null;
+			if(!solutions[a].isEmpty()) {
+				requests[a][0] = solutions[a].get(0).getRequired();
+				if(solutions[a].size() > 1) {
+					requests[a][1] = solutions[a].get(1).getRequired();
+					if(solutions[a].size() > 2) {
+						requests[a][2] = solutions[a].get(2).getRequired();
+					}
+				}
+			}
+			return node.action.toString();
+		} 
+		return "NoOp";
 	}
 
 	private static LinkedList<Node> createSolution(AIClient client, Node initialState, LinkedList<Pos> pos) throws IOException {
