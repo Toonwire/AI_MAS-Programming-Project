@@ -11,4 +11,9 @@ public class Element {
 	public char getLabel() {
 		return this.label;
 	}
+	
+	@Override
+	public String toString() {
+		return ""+label;
+	}
 }

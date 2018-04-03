@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
-import ourclients.AIClient;
+import statespace.AIClient.Agent;
 import statespace.Command;
 import statespace.Command.Type;
 
@@ -40,9 +40,14 @@ public class Node {
 	
 	private int _hash = 0;
 
-	public Node(Node parent, AIClient client) {
+	private Agent agent;
+
+	private Pos required;
+
+	public Node(Node parent, AIClient client, Agent agent) {
 		this.parent = parent;
 		this.client = client;
+		this.agent = agent;
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		if (parent == null) {
 			this.g = 0;
@@ -63,6 +68,17 @@ public class Node {
 		return this.parent == null;
 	}
 
+	public boolean requestFulfilled(LinkedList<Pos> pos) {
+		boolean empty = true;
+		for(Pos p : pos) {
+			if (p != null && !isEmpty(p)) {
+				empty = false;
+				break;
+			}
+		}
+		return empty;
+ 		
+	}
 	public boolean isGoalState() {
 //		for (Goal goal : client.getGoalList()) {
 //			if (goal.hasBox())
@@ -82,14 +98,13 @@ public class Node {
 
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-				char g = client.getGoals()[row][col] != null ? client.getGoals()[row][col].getLabel() : 0;
+				char g = client.getGoals(agent)[row][col] != null ? client.getGoals(agent)[row][col].getLabel() : 0;
 				char b = boxes[row][col] != null ? Character.toLowerCase(boxes[row][col].getLabel()) : 0;
-				if (g > 0 && b != g) {
+				if (g > 0 && b != g && client.getColor(g) != agent.getColor()) {
 					return false;
 				}
 			}
 		}
-		
 		return true;
 	}
 
@@ -107,6 +122,7 @@ public class Node {
 					n.action = c;
 					n.agentRow = newAgentRow;
 					n.agentCol = newAgentCol;
+					n.required = new Pos(newAgentRow, newAgentCol);
 					expandedNodes.add(n);
 				}
 			} else if (c.actionType == Type.Push) {
@@ -122,23 +138,14 @@ public class Node {
 						n.agentCol = newAgentCol;
 						n.boxes[newBoxRow][newBoxCol] = this.boxes[newAgentRow][newAgentCol];
 						n.boxes[newAgentRow][newAgentCol] = null;
-//						if (n.boxes[newBoxRow][newBoxCol] != null && client.getGoals()[newBoxRow][newBoxCol] != null) {
-//							if (Character.toLowerCase(n.boxes[newBoxRow][newBoxCol].getLabel()) == client.getGoals()[newBoxRow][newBoxCol].getLabel()) {
-//								client.getGoals()[newBoxRow][newBoxCol].setBox(n.boxes[newBoxRow][newBoxCol]);
-//							}
-//						} else if (client.getGoals()[newAgentRow][newAgentCol] != null) {
-//							client.getGoals()[newAgentRow][newAgentCol].setBox(null);
-//						}
-						
+						n.required = new Pos(newBoxRow, newBoxCol);
 						expandedNodes.add(n);
 					}
 				}
 			} else if (c.actionType == Type.Pull) {
-				// Cell is free where agent is going
 				if (this.cellIsFree(newAgentRow, newAgentCol)) {
 					int boxRow = this.agentRow + Command.dirToRowChange(c.dir2);
 					int boxCol = this.agentCol + Command.dirToColChange(c.dir2);
-					// .. and there's a box in "dir2" of the agent
 					if (this.boxAt(boxRow, boxCol)) {
 						Node n = this.ChildNode();
 						n.action = c;
@@ -146,14 +153,7 @@ public class Node {
 						n.agentCol = newAgentCol;
 						n.boxes[this.agentRow][this.agentCol] = this.boxes[boxRow][boxCol];
 						n.boxes[boxRow][boxCol] = null;
-						
-//						if (n.boxes[this.agentRow][this.agentCol] != null && client.getGoals()[this.agentRow][this.agentCol] != null) {
-//							if (Character.toLowerCase(n.boxes[this.agentRow][this.agentCol].getLabel()) == client.getGoals()[this.agentRow][this.agentCol].getLabel()) {
-//								client.getGoals()[this.agentRow][this.agentCol].setBox(n.boxes[this.agentRow][this.agentCol]);
-//							}
-//						} else if (client.getGoals()[boxRow][boxCol] != null) {
-//							client.getGoals()[boxRow][boxCol].setBox(null);
-//						}
+						n.required = new Pos(newAgentRow, newAgentCol);
 						
 						expandedNodes.add(n);
 					}
@@ -165,15 +165,18 @@ public class Node {
 	}
 
 	private boolean cellIsFree(int row, int col) {
-		return !client.getWalls()[row][col] && this.boxes[row][col] == null;
+		return !client.getWalls()[row][col];
 	}
-
+	
+	public boolean isEmpty(Pos pos) {
+		return boxes[pos.row][pos.col] == null && !(agentRow == pos.row && agentCol == pos.col);
+	}
 	private boolean boxAt(int row, int col) {
 		return this.boxes[row][col] != null;
 	}
 
 	private Node ChildNode() {
-		Node copy = new Node(this, client);
+		Node copy = new Node(this, client, agent);
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			System.arraycopy(this.boxes[row], 0, copy.boxes[row], 0, client.getMaxCol());
 		}
@@ -229,12 +232,12 @@ public class Node {
 			for (int col = 0; col < client.getMaxCol(); col++) {
 				if (this.boxes[row][col] != null) {
 					s.append(this.boxes[row][col]);
-				} else if ((client.getGoals()[row][col] != null ? client.getGoals()[row][col].getLabel() : 0) > 0) {
-					s.append(client.getGoals()[row][col]);
+				} else if ((client.getGoals(agent)[row][col] != null ? client.getGoals(agent)[row][col].getLabel() : 0) > 0) {
+					s.append(client.getGoals(agent)[row][col]);
 				} else if (client.getWalls()[row][col]) {
 					s.append("+");
 				} else if (row == this.agentRow && col == this.agentCol) {
-					s.append("0");
+					s.append(agent.getLabel());
 				} else {
 					s.append(" ");
 				}
@@ -338,6 +341,30 @@ public class Node {
 		int goalScoreSum = (int) (goalScore * goalFactor);
 		
 		this.h = distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum;
+	}
+
+	public Pos getRequired() {
+		return required;
+	}
+
+	public Node copy() {
+		Node n = new Node(null, client, agent);
+
+		
+		for (int row = 0; row < client.getMaxRow(); row++) {
+			System.arraycopy(boxes[row], 0, n.boxes[row], 0, client.getMaxCol());
+		}
+		
+		n.agentRow = agentRow;
+		n.agentCol = agentCol;
+		n.action = action;
+		n.goals = goals;
+		
+		return n;
+	}
+
+	public Agent getAgent() {
+		return agent;
 	}
 
 }
