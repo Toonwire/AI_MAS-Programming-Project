@@ -321,33 +321,49 @@ public class AIClient {
 			while(true) {
 				boolean done = true;
 				for (int i = 0; i < solutions.length; i++) { //Current agent
+					boolean ownConflict = false;
 					int a1 = agentOrder[i];
-					Node currentNode = currentStates[a1];
-					
-					//Create solution to solve own problem
-					if((solutions[a1] == null || solutions[a1].isEmpty()) && !currentStates[a1].isGoalState()) {
-						solutions[a1] = createSolution(client, currentStates[a1].copy(), null);
+					Node beforeNode = currentStates[a1];
+					Node afterNode = null;
+					if(solutions[a1] != null && !solutions[a1].isEmpty()) {
+						afterNode = solutions[a1].get(0);
 					}
 					
-					//Requests
+					//Check other agents
 					for(int j = 0; j < i; j++) { //Higher-order agents
 						int a2 = agentOrder[j];
 						Pos pos = requests[a2][0];
 						Pos pos2 = requests[a2][1];
-						if((pos != null && !currentNode.isEmpty(pos)) || (pos2 != null && !currentNode.isEmpty(pos2)) ) {
+						
+						//Check if planned move is allowed
+						if(pos != null && afterNode != null && afterNode.getRequired().equals(pos)) {
+							actions[a1] = "NoOp";
+							ownConflict = true;
+						}
+						
+						//Fulfil request for next iteration (overwrites above)
+						if((pos != null && !beforeNode.isEmpty(pos)) || (pos2 != null && !beforeNode.isEmpty(pos2)) ) {
 							//Replan
 							LinkedList<Pos> positions = new LinkedList<>();
 							positions.add(new Pos(currentStates[a2].agentRow, currentStates[a2].agentCol));
 							positions.add(pos);
 							positions.add(pos2);		
 							positions.add(requests[a2][2]);
-							solutions[a1] = createSolution(client, currentNode.copy(), positions);
+							solutions[a1] = createSolution(client, beforeNode.copy(), positions);
+							System.err.println(positions+ " \n"+solutions[a1]);
+							ownConflict = false;
 							break;
 						}
 					}
 					
-					actions[a1] = getAction(solutions, a1, i);
-
+					if(!ownConflict) {
+						actions[a1] = getAction(solutions, a1, i);
+					}
+					
+					//Create solution to solve own problem
+					if((solutions[a1] == null || solutions[a1].isEmpty()) && !currentStates[a1].isGoalState()) {
+						solutions[a1] = createSolution(client, currentStates[a1].copy(), null);
+					}
 					
 					//At least one agent has a proper action
 					if(actions[a1] != "NoOp") {
@@ -373,7 +389,7 @@ public class AIClient {
 				combinedSolution.add(state);
 				System.err.println(act);
 				System.out.println(act);
-//				System.err.println(combinedSolution.get(combinedSolution.size()-1));
+				System.err.println(combinedSolution.get(combinedSolution.size()-1));
 				 String response = serverMessages.readLine();
 				 if (response.contains("false")) {
 					 System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
@@ -394,18 +410,7 @@ public class AIClient {
 					|| !(combinedSolution.get(combinedSolution.size()-1)).isEmpty(p)) { //conflict with previous state
 				return "NoOp";
 			} else {
-				MultiNode newState = new MultiNode(state, a, node.action);
-				for(int j = 0; j < i; j++) {
-					if(j != i) {
-						int a2 = agentOrder[j];
-						Pos pos = requests[a2][0];
-						if(pos != null && state.isEmpty(pos) && !newState.isEmpty(pos)) { //take free required cell
-							solutions[a] = null;
-							return "NoOp";
-						}
-					}
-				}
-				state = newState;
+				state = new MultiNode(state, a, node.action);
 			}
 			
 			node.action.toString();

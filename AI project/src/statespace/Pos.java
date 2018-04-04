@@ -14,7 +14,7 @@ public class Pos{
 		return "("+row+","+col+")";
 	}
 	
-	private boolean equals(Pos pos) {
+	public boolean equals(Pos pos) {
 		return this.row == pos.row && this.col == pos.col;
 	}
 }
