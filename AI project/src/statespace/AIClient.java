@@ -321,7 +321,7 @@ public class AIClient {
 			while(true) {
 				boolean done = true;
 				for (int i = 0; i < solutions.length; i++) { //Current agent
-					boolean ownConflict = false;
+					boolean stop = false;
 					int a1 = agentOrder[i];
 					Node beforeNode = currentStates[a1];
 					Node afterNode = null;
@@ -334,15 +334,9 @@ public class AIClient {
 						int a2 = agentOrder[j];
 						Pos pos = requests[a2][0];
 						Pos pos2 = requests[a2][1];
-						
-						//Check if planned move is allowed
-						if(pos != null && afterNode != null && afterNode.getRequired().equals(pos)) {
-							actions[a1] = "NoOp";
-							ownConflict = true;
-						}
-						
+										
 						//Fulfil request for next iteration (overwrites above)
-						if((pos != null && !beforeNode.isEmpty(pos)) || (pos2 != null && !beforeNode.isEmpty(pos2)) ) {
+						if((pos != null && !beforeNode.isEmpty(pos)) || (pos2 != null && !beforeNode.isEmpty(pos2))) {
 							//Replan
 							LinkedList<Pos> positions = new LinkedList<>();
 							positions.add(new Pos(currentStates[a2].agentRow, currentStates[a2].agentCol));
@@ -350,13 +344,15 @@ public class AIClient {
 							positions.add(pos2);		
 							positions.add(requests[a2][2]);
 							solutions[a1] = createSolution(client, beforeNode.copy(), positions);
-							System.err.println(positions+ " \n"+solutions[a1]);
-							ownConflict = false;
+							stop = false;
 							break;
+						} else if (pos != null && afterNode != null && afterNode.getRequired().equals(pos)) {
+							actions[a1] = "NoOp";
+							stop = true;
 						}
 					}
 					
-					if(!ownConflict) {
+					if(!stop) {
 						actions[a1] = getAction(solutions, a1, i);
 					}
 					
