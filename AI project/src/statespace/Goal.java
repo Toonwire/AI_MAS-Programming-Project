@@ -4,18 +4,18 @@ import java.awt.Point;
 
 public class Goal extends Element {
 
-	private Point pos;
+	private Pos pos;
 		
-	public Goal(char label, int row, int col) {
+	public Goal(char label, Pos pos) {
 		super(label);
-		this.pos = new Point(row,col);
+		this.pos = pos;
 	}
 
-	public Point getPos() {
-		return this.pos;
+	public Pos getPos() {
+		return pos;
 	}
 	
-	public int getDistanceToGoal(Point p) {
-		return Math.abs(p.x - pos.x) + Math.abs(p.y - pos.y);
-	}
+//	public int getDistanceToGoal(Point p) {
+//		return Math.abs(p.x - pos.row) + Math.abs(p.y - pos.col);
+//	}
 }
