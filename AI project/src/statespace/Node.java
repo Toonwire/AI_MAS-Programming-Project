@@ -30,12 +30,12 @@ public class Node {
 
 	public Box[][] boxes;
 	public Goal[][] goals;
-
+	
 	public Node parent;
 	public Command action;
 	
 	private int g;
-	private int h = Integer.MAX_VALUE;
+	private int h;
 	private AIClient client;
 	
 	private int _hash = 0;
@@ -49,25 +49,26 @@ public class Node {
 		this.client = client;
 		this.agent = agent;
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
-		if (parent == null) {
-			this.g = 0;
-		} else {
-			this.g = parent.g() + 1;
-		}
+		
+		this.g = parent == null ? 0 : parent.g() + 1;
 	}
-
+	
 	public int g() {
 		return this.g;
 	}
 	
 	public int h() {
-		return this.h;
+		return this.h > 0 ? this.h : this.calculateDistanceToGoal();
 	}
 
 	public boolean isInitialState() {
 		return this.parent == null;
 	}
 
+	public boolean isSubGoalState(Node node) {
+		return this.equals(node);
+	}	
+	
 	public boolean requestFulfilled(LinkedList<Pos> pos) {
 		boolean empty = true;
 		for(Pos p : pos) {
@@ -79,6 +80,7 @@ public class Node {
 		return empty;
  		
 	}
+	
 	public boolean isGoalState() {
 //		for (Goal goal : client.getGoalList()) {
 //			if (goal.hasBox())
@@ -165,7 +167,7 @@ public class Node {
 	}
 
 	private boolean cellIsFree(int row, int col) {
-		return !client.getWalls()[row][col];
+		return !client.getWalls()[row][col] && !client.getTempWalls()[row][col];
 	}
 	
 	public boolean isEmpty(Pos pos) {
@@ -222,7 +224,7 @@ public class Node {
 			return false;
 		return true;
 	}
-
+	
 	@Override
 	public String toString() {
 		StringBuilder s = new StringBuilder();
@@ -237,6 +239,8 @@ public class Node {
 					s.append(goals[row][col]);
 				} else if (client.getWalls()[row][col]) {
 					s.append("+");
+				} else if (client.getTempWalls()[row][col]) {
+					s.append("+");
 				} else if (row == this.agentRow && col == this.agentCol) {
 					s.append(agent.getLabel());
 				} else {
@@ -248,101 +252,91 @@ public class Node {
 		return s.toString();
 	}
 	
-//	public void calculateDistanceToGoal() {
-//		
-//		int distanceToGoals = 0;
-//		int distanceToBoxes = 0;
-//		// Distance from agent to the  nearest box
-//		int distanceToNearestBox = 0;
-//		
-//		// Calculate manhattan distance from a box to the nearest goal for that box, which is not occupied.
-//		// Iterate through the grid
-//		for (int row = 1; row < client.getMaxRow() - 1; row++) {
-//			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-//				
-//				Box box = this.boxes[row][col];
-//				boolean boxInGoal = false;
-//				
-//				// Check if there is a box in the cell
-//				// If not, continue
-//				if (box != null) {
-//					
-//					// Get the label of the box
-//					char label = Character.toLowerCase(box.getLabel());
-//					
-//					List<Goal> freeGoals = new ArrayList<Goal>();
-//					
-//					// DO NOT USE BELOW CODE, REWRITE PLEASE!!
-//					// Find all goals matching the box by its label
-////					if (client.getGoalMap().containsKey(label)) {
-////						List<Goal> goals = client.getGoalMap().get(label);
-////						
-////						// Find all free goals for that box
-////						for (Goal goal : goals) {
-////							Box goalBox = this.boxes[goal.getPos().x][goal.getPos().y]; 
-////							if (goalBox == null) {
-////								freeGoals.add(goal);
-////							} else {
-////								// Check if the box are already in goal
-////								if (goalBox == box) 
-////									boxInGoal = true;
-////								if (Character.toLowerCase(goalBox.getLabel()) != goal.getLabel())
-////									freeGoals.add(goal);
-////							}
-////						}
-////					}
-//					
-//					int distanceToNearestGoal = 0;
-//					// If the box is not in goal, and some goals are left open
-//					// Then find the nearest goal
-////					if (!freeGoals.isEmpty() && !boxInGoal) {
-////						
-////						for (Goal goal : freeGoals) {
-////							int distanceToGoal = goal.getDistanceToGoal(new Point(row,col));
-////							if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
-////								distanceToNearestGoal = distanceToGoal;
-////						}
-////					
-////						distanceToGoals += Math.pow(distanceToNearestGoal,1);
-////					}
-//					
-//					// Calculate the distance to the nearest box from the agent, which is not in a goal state
-//					int distanceToCurrentBox = Math.abs(row - agentRow) + Math.abs(col - agentCol);
-//					
-//					if (!boxInGoal)
-//						distanceToBoxes += distanceToCurrentBox;
-//					
-//					if ((distanceToCurrentBox < distanceToNearestBox || distanceToNearestBox == 0) && !boxInGoal) {
-//						distanceToNearestBox = distanceToCurrentBox;
-//					} 
-//				}
-//			}
-//		}
-//		
-//		// Set factors for measurements
-//		double goalFactor = 10;
-//		double agentFactor = 0.5;
-//		double distanceFactor = 1.0;
-//
-//		// Calculate the amount of goals reached
-//		double goalScore = client.getGoalList().size();
-//		
-//		for (Goal goal : client.getGoalList()) {
-//			Box goalBox = this.boxes[goal.getPos().x][goal.getPos().y]; 
-//			if (goalBox != null)
-//				if (Character.toLowerCase(goalBox.getLabel()) == goal.getLabel())
-//					goalScore -= 1;
-//		}
-//		
-//		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
-//		
-//		int distanceToNearestBoxSum = (int) (distanceToNearestBox * agentFactor);
-//		int distanceToAllBoxesSum = (int) (distanceToBoxes * agentFactor); // Not in use right now
-//		
-//		int goalScoreSum = (int) (goalScore * goalFactor);
-//		
-//		this.h = distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum;
-//	}
+	public int calculateDistanceToGoal() {
+		
+		int distanceToGoals = 0;
+		int distanceToBoxes = 0;
+		// Distance from agent to the  nearest box
+		int distanceToNearestBox = 0;
+		
+		// Calculate manhattan distance from a box to the nearest goal for that box, which is not occupied.
+		// Iterate through the grid
+		
+		List<Goal> freeGoals = new ArrayList<Goal>();
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				Goal goal = goals[row][col];
+				Box box = boxes[row][col];
+				
+				if (box == null && goal != null) {
+					freeGoals.add(goal);
+				} else if (goal != null && Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+					freeGoals.add(goal);
+				}
+			}
+		}
+		
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				
+				Box box = this.boxes[row][col];
+				boolean boxInGoal = false;
+				
+				// Check if there is a box in the cell
+				// If not, continue
+				if (box != null) {
+					
+					int distanceToNearestGoal = 0;
+					// If the box is not in goal, and some goals are left open
+					// Then find the nearest goal
+					if (!freeGoals.isEmpty() && !boxInGoal) {
+						
+						for (Goal goal : freeGoals) {
+							int distanceToGoal = goal.getPos().manhattanDistanceToPos(new Pos(row,col));
+							if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
+								distanceToNearestGoal = distanceToGoal;
+						}
+					
+						distanceToGoals += Math.pow(distanceToNearestGoal,1);
+					}
+					
+					// Calculate the distance to the nearest box from the agent, which is not in a goal state
+					int distanceToCurrentBox = Math.abs(row - agentRow) + Math.abs(col - agentCol);
+					
+					if (!boxInGoal)
+						distanceToBoxes += distanceToCurrentBox;
+					
+					if ((distanceToCurrentBox < distanceToNearestBox || distanceToNearestBox == 0) && !boxInGoal) {
+						distanceToNearestBox = distanceToCurrentBox;
+					} 
+				}
+			}
+		}
+		
+		// Set factors for measurements
+		double goalFactor = 10;
+		double agentFactor = 0.5;
+		double distanceFactor = 1.0;
+
+		// Calculate the amount of goals reached
+		double goalScore = client.getGoalList().size();
+		
+		for (Goal goal : client.getGoalList()) {
+			Box goalBox = this.boxes[goal.getPos().row][goal.getPos().col]; 
+			if (goalBox != null)
+				if (Character.toLowerCase(goalBox.getLabel()) == goal.getLabel())
+					goalScore -= 1;
+		}
+		
+		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
+		
+		int distanceToNearestBoxSum = (int) (distanceToNearestBox * agentFactor);
+		int distanceToAllBoxesSum = (int) (distanceToBoxes * agentFactor); // Not in use right now
+		
+		int goalScoreSum = (int) (goalScore * goalFactor);
+		
+		return distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum;
+	}
 
 	public Pos getRequired() {
 		return required;

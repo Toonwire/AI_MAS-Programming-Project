@@ -15,12 +15,14 @@ import java.util.Set;
 
 import sampleclients.MultiCommand;
 import statespace.Strategy.*;
+import statespace.Heuristic.*;
 
 public class AIClient {
 	private static int MAX_ROW;
 	private static int MAX_COL;
 
 	private boolean[][] walls;
+	private boolean[][] tempWalls;
 	private static Goal[][] goals;
 	private static Agent[][] agents;
 	private static Agent[] agentIDs;
@@ -126,6 +128,7 @@ public class AIClient {
 		}
 
 		walls = new boolean[MAX_ROW][MAX_COL];
+		tempWalls = new boolean[MAX_ROW][MAX_COL];
 		agents = new Agent[MAX_ROW][MAX_COL];
 		goals = new Goal[MAX_ROW][MAX_COL];
 		boxes = new Box[MAX_ROW][MAX_COL];
@@ -202,13 +205,13 @@ public class AIClient {
 							int col2 = g.getPos().col;
 							gsTemp[row2][col2] = g;
 							initialState.goals = gsTemp; 
-							LinkedList<Node> sol = Search(getStrategy(), initialState, null);
+							LinkedList<Node> sol = Search(getStrategy("astar", initialState), initialState, null, null);
 							if(sol != null && !sol.isEmpty()) {
 								reachableGoals[row2][col2] = g; //add to final goal array
 							}
 						}
 						
-						initialState.goals = reachableGoals;		
+						initialState.goals = reachableGoals;
 					} else {
 						initialState.goals = goalMap.get(c);
 					}
@@ -218,9 +221,33 @@ public class AIClient {
 		}
 	}
 
-	private static Strategy getStrategy() {
-		//TBC
-		return new StrategyBFS();
+	private static Strategy getStrategy(String strategyStr, Node initialState) {
+		
+		Strategy strategy;
+		
+		switch (strategyStr.toLowerCase()) {
+	        case "bfs":
+	            strategy = new StrategyBFS();
+	            break;
+	        case "dfs":
+	            strategy = new StrategyDFS();
+	            break;
+	        case "astar":
+	            strategy = new StrategyBestFirst(new AStar(initialState));
+	            break;
+	        case "wastar":
+	            // You're welcome to test WA* out with different values, but for the report you must at least indicate benchmarks for W = 5.
+	            strategy = new StrategyBestFirst(new WeightedAStar(initialState, 5));
+	            break;
+	        case "greedy":
+	            strategy = new StrategyBestFirst(new Greedy(initialState));
+	            break;
+	        default:
+	            strategy = new StrategyBFS();
+	            System.err.println("Defaulting to BFS search. Use arguments -bfs, -dfs, -astar, -wastar, or -greedy to set the search strategy.");
+		
+		}
+		return strategy;
 	}
 
 	public int getMaxRow() {
@@ -242,6 +269,14 @@ public class AIClient {
 	public boolean[][] getWalls() {
 		return walls;
 	}
+	
+	public boolean[][] getTempWalls() {
+		return tempWalls;
+	}
+	
+	public void resetTempWalls() {
+		tempWalls = new boolean[MAX_ROW][MAX_COL];
+	}
 
 	public Box[][] getBoxes() {
 		return boxes;
@@ -251,7 +286,7 @@ public class AIClient {
 		return agents;
 	}
 
-	public LinkedList<Node> Search(Strategy strategy, Node initialState, LinkedList<Pos> pos) throws IOException {
+	public LinkedList<Node> Search(Strategy strategy, Node initialState, LinkedList<Pos> pos, Node goalNode) throws IOException {
 		System.err.format("Search starting with strategy %s.\n", strategy.toString());
 		strategy.addToFrontier(initialState);
 		int iterations = 0;
@@ -267,8 +302,9 @@ public class AIClient {
 
 			Node leafNode = strategy.getAndRemoveLeaf();
 
-			if ((pos == null && leafNode.isGoalState()) || (pos != null && leafNode.requestFulfilled(pos)
-					&& leafNode.parent != null && leafNode.parent.isEmpty(pos.get(1)))) {
+			if ((pos == null && leafNode.isGoalState()) 
+					|| (pos != null && leafNode.requestFulfilled(pos) && leafNode.parent != null && leafNode.parent.isEmpty(pos.get(1)))
+					|| (goalNode != null && leafNode.isSubGoalState(goalNode))) {
 				return leafNode.extractPlan();
 			}
 
@@ -283,11 +319,13 @@ public class AIClient {
 		}
 	}
 
+	public static AIClient client;
+	
 	public static void main(String[] args) throws Exception {
 		BufferedReader serverMessages = new BufferedReader(new InputStreamReader(System.in));
 
 		// Read level and create the initial state of the problem
-		AIClient client = new AIClient(serverMessages);
+		client = new AIClient(serverMessages);
 		
 //		  Strategy strategy = null; if (args.length > 0) { switch
 //		  (args[0].toLowerCase()) { case "-bfs": strategy = new StrategyBFS(); break;
@@ -306,11 +344,12 @@ public class AIClient {
 		 
 
 		LinkedList<Node>[] solutions = new LinkedList[initialStates.size()];
+		LinkedList<Node>[] originalSolutions = new LinkedList[initialStates.size()];
 
 		agentIDs = new Agent[initialStates.size()];
 		for (Agent a : initialStates.keySet()) {
 			Node initialState = initialStates.get(a);
-			LinkedList<Node> solution = createSolution(getStrategy(), client, initialState, null);
+			LinkedList<Node> solution = createSolution(getStrategy("astar", initialState), client, initialState, null);
 			agentIDs[a.getID()] = a;
 					
 			if (solution != null) {
@@ -339,7 +378,6 @@ public class AIClient {
 			state = new MultiNode(client, boxes, agents);
 			combinedSolution.add(state);
 
-
 			agentOrder.add(agentIDs[0]);
 			agentOrder.add(agentIDs[1]);
 			
@@ -350,7 +388,7 @@ public class AIClient {
 			while(true) {
 				completed = new LinkedList<>();
 				boolean done = true;
-				for (int i = 0; i < solutions.length; i++) { //Current agent
+				for (int i = 0; i < solutions.length; i++) { //Current agentf
 					boolean stop = false;
 					int a1 = agentOrder.get(i).getID();
 					Node beforeNode = currentStates[a1];
@@ -373,7 +411,21 @@ public class AIClient {
 							positions.add(pos); //required in current state
 							positions.add(pos2); //required in next state		
 							positions.add(requests[a2][3]); //required after next state
-							solutions[a1] = createSolution(new StrategyBFS(), client, beforeNode.copy(), positions);
+							
+							Node newInitialState = beforeNode.copy();
+//							new Thread(new Runnable() {
+//								@Override
+//								public void run() {
+//									try {
+//										createSolution(getStrategy(newInitialState), client, newInitialState, positions);
+//									} catch (IOException e) {
+//										// TODO Auto-generated catch block
+//										e.printStackTrace();
+//									}
+//								}
+//							}).start();
+							System.err.println("WUUUUUT!!");
+							solutions[a1] = createSolution(getStrategy("bfs", newInitialState), client, newInitialState, positions);
 							updateRequirements(solutions[a1], a1);
 							stop = false;
 							break;
@@ -383,14 +435,20 @@ public class AIClient {
 							stop = true;
 						}
 					}
+
+					if ((solutions[a1] == null || solutions[a1].isEmpty()) && originalSolutions[a1] != null) {
+						solutions[a1] = originalSolutions[a1];
+						originalSolutions[a1] = null;
+					}
 					
 					if(!stop) {
-						actions[a1] = getAction(solutions, a1, i);
+						actions[a1] = getAction(solutions, originalSolutions, a1, i);
 					}
 					
 					//Create solution to solve own problem
 					if((solutions[a1] == null || solutions[a1].isEmpty()) && !currentStates[a1].isGoalState()) {
-						solutions[a1] = createSolution(getStrategy(), client, currentStates[a1].copy(), null);
+						Node newInitialState = currentStates[a1].copy();
+						solutions[a1] = createSolution(getStrategy("astar", newInitialState), client, newInitialState, null);
 						updateRequirements(solutions[a1], a1);
 					}
 					
@@ -404,7 +462,7 @@ public class AIClient {
 						done = false;
 					}
 				}
-
+				
 				if(done) {
 					break;
 				}
@@ -424,6 +482,7 @@ public class AIClient {
 					agentOrder.remove(a);
 					agentOrder.add(a);
 				}
+				
 				combinedSolution.add(state);
 				System.err.println(act);
 				System.out.println(act);
@@ -437,21 +496,51 @@ public class AIClient {
 			}
 		}
 	}
-
-	private static String getAction(LinkedList<Node>[] solutions, int a, int i) {
+	
+	private static String getAction(LinkedList<Node>[] solutions, LinkedList<Node>[] originalSolutions, int a, int i) throws Exception {
 		if (solutions[a] != null && !solutions[a].isEmpty()) {
 			Node node = solutions[a].get(0);
-
+			
 			Pos p = node.getRequired();
 
 			if ((!state.isEmpty(p) && state.agents[p.row][p.col] != node.getAgent()) // conflict with other agents in same state
 					|| !(combinedSolution.get(combinedSolution.size() - 1)).isEmpty(p)) { // conflict with previous
 																							// state
-				return "NoOp";
-			} else {
-				state = new MultiNode(state, a, node.action);
+				
+				// Check if there is another way to solve this conflict before requesting help
+				Node nextNode = null;
+				if (originalSolutions[a] != null && originalSolutions[a].size() > 1)
+					nextNode = originalSolutions[a].get(1);
+				else if (solutions[a].size() > 1)
+					nextNode = solutions[a].get(1);
+				
+				if (nextNode != null) {
+					Node newInitialNode = currentStates[a].copy();
+					System.err.println("Vi finder ny plan");
+					// add fictive wall where the conflict arose
+					client.getTempWalls()[node.getRequired().row][node.getRequired().col] = true;
+					LinkedList<Node> tempSolution = createSolution(getStrategy("bfs", newInitialNode), client, newInitialNode, null, nextNode);
+					
+					if (!tempSolution.isEmpty()) {
+						System.err.println("Vi fandt ny plan");
+						System.err.println(tempSolution.toString());
+						originalSolutions[a] = solutions[a];
+						solutions[a] = tempSolution;
+						
+						return getAction(solutions, originalSolutions, a, i);
+					}
+				} else {
+					System.err.println("Spørg om hjælp!");
+					// No other plan was found
+					client.resetTempWalls();
+					return "NoOp";					
+				}
 			}
-
+			
+			client.resetTempWalls();
+			
+			state = new MultiNode(state, a, node.action);
+			
 			node.action.toString();
 			currentStates[a] = node;
 			solutions[a].remove(0);
@@ -460,7 +549,7 @@ public class AIClient {
 		}
 		return "NoOp";
 	}
-
+	
 	private static void updateRequirements(LinkedList<Node> solution, int a) {
 		if(solution != null) {
 			requests[a][0] = requests[a][1];
@@ -481,9 +570,14 @@ public class AIClient {
 
 	private static LinkedList<Node> createSolution(Strategy strategy, AIClient client, Node initialState, LinkedList<Pos> pos)
 			throws IOException {
+		return createSolution(strategy, client, initialState, pos, null);
+	}
+	
+	private static LinkedList<Node> createSolution(Strategy strategy, AIClient client, Node initialState, LinkedList<Pos> pos, Node goalNode)
+			throws IOException {
 		LinkedList<Node> solution;
 		try {
-			solution = client.Search(strategy, initialState, pos);
+			solution = client.Search(strategy, initialState, pos, goalNode);
 		} catch (OutOfMemoryError ex) {
 			System.err.println("Maximum memory usage exceeded.");
 			solution = null;
