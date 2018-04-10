@@ -15,6 +15,8 @@ import java.util.Set;
 
 import sampleclients.MultiCommand;
 import statespace.Strategy.*;
+import statespace.Command.Dir;
+import statespace.Command.Type;
 import statespace.Heuristic.*;
 
 public class AIClient {
@@ -517,8 +519,45 @@ public class AIClient {
 				if (nextNode != null) {
 					Node newInitialNode = currentStates[a].copy();
 					System.err.println("Vi finder ny plan");
+					
+					Pos boxPos = null;
+					
+					if (node.action.actionType == Type.Push) {
+						boxPos = new Pos(node.agentRow, node.agentCol);
+					} else if (node.action.actionType == Type.Pull) {
+						if (node.action.dir2 == Dir.N) {
+							boxPos = new Pos(node.agentRow - 1, node.agentCol);
+						} else if (node.action.dir2 == Dir.S) {
+							boxPos = new Pos(node.agentRow + 1, node.agentCol);
+						} else if (node.action.dir2 == Dir.E) {
+							boxPos = new Pos(node.agentRow, node.agentCol - 1);
+						} else if (node.action.dir2 == Dir.W) {
+							boxPos = new Pos(node.agentRow, node.agentCol + 1);
+						}
+					}
+					
+					System.err.println("Agent: " + node.getAgent() + ", action: " + node.action.toString() + ", " + "(" + node.agentRow + "," + node.agentCol + ") - " + requests[a][0] + requests[a][1] + requests[a][2] + requests[a][3]);
+					if (boxPos != null) System.err.println("POSITION: " + boxPos.toString());
+					
 					// add fictive wall where the conflict arose
-					client.getTempWalls()[node.getRequired().row][node.getRequired().col] = true;
+					for (int row = 0; row < client.getMaxRow(); row++) {
+						for (int col = 0; col < client.getMaxCol(); col++) {
+							if (boxes[row][col] != null) {
+								if (boxPos == null || !(boxPos.row == row && boxPos.col == col)) {
+									client.getTempWalls()[row][col] = true;	
+								}	
+							}
+							if (agents[row][col] != null) {
+								if (!agents[row][col].equals(node.getAgent())) {
+									client.getTempWalls()[row][col] = true;
+								}
+							}
+						}
+					}
+					
+					
+					//client.getTempWalls()[node.getRequired().row][node.getRequired().col] = true;
+					
 					LinkedList<Node> tempSolution = createSolution(getStrategy("bfs", newInitialNode), client, newInitialNode, null, nextNode);
 					
 					if (!tempSolution.isEmpty()) {

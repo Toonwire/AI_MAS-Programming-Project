@@ -51,7 +51,7 @@ public class Command {
 			return 0;
 		}
 	}
-
+	
 	public static int dirToColChange(Dir d) {
 		// East is right one column (1), west is left one column (-1).
 		switch (d) {
@@ -63,7 +63,7 @@ public class Command {
 			return 0;
 		} 
 	}
-
+	
 	public final Type actionType;
 	public final Dir dir1;
 	public final Dir dir2;
