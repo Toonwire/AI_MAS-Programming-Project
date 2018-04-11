@@ -12,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import sampleclients.MultiCommand;
 import statespace.Strategy.*;
@@ -159,7 +160,7 @@ public class AIClient {
 					if (c == null)
 						c = DEFAULT_COLOR;
 
-					Box box = new Box(chr);
+					Box box = new Box(chr,c);
 					boxes[row][col] = box;
 					boxMap.get(c)[row][col] = box;
 				} else if ('a' <= chr && chr <= 'z') { // Goal.
@@ -297,19 +298,20 @@ public class AIClient {
 				System.err.println(strategy.searchStatus());
 				iterations = 0;
 			}
-
+			
 			if (strategy.frontierIsEmpty()) {
 				return null;
 			}
-
+			
 			Node leafNode = strategy.getAndRemoveLeaf();
-
+			
+			// Goal states
 			if ((pos == null && leafNode.isGoalState()) 
 					|| (pos != null && leafNode.requestFulfilled(pos) && leafNode.parent != null && leafNode.parent.isEmpty(pos.get(1)))
 					|| (goalNode != null && leafNode.isSubGoalState(goalNode))) {
 				return leafNode.extractPlan();
 			}
-
+			
 			strategy.addToExplored(leafNode);
 			for (Node n : leafNode.getExpandedNodes()) {
 				if (!strategy.isExplored(n) && !strategy.inFrontier(n)) {
@@ -427,7 +429,7 @@ public class AIClient {
 //								}
 //							}).start();
 							System.err.println("WUUUUUT!!");
-							solutions[a1] = createSolution(getStrategy("bfs", newInitialState), client, newInitialState, positions);
+							solutions[a1] = createSolution(getStrategy("astar", newInitialState), client, newInitialState, positions);
 							updateRequirements(solutions[a1], a1);
 							stop = false;
 							break;
@@ -439,7 +441,11 @@ public class AIClient {
 					}
 
 					if ((solutions[a1] == null || solutions[a1].isEmpty()) && originalSolutions[a1] != null) {
+						System.err.println("Getting old plan");
 						solutions[a1] = originalSolutions[a1];
+						System.out.println(solutions[a1].get(0));
+						System.out.println(solutions[a1].get(1));
+						System.out.println(solutions[a1].get(2));
 						originalSolutions[a1] = null;
 					}
 					
@@ -480,10 +486,10 @@ public class AIClient {
 				act += "]";
 				
 				//Reorder
-				for(Agent a : completed) {
-					agentOrder.remove(a);
-					agentOrder.add(a);
-				}
+//				for(Agent a : completed) {
+//					agentOrder.remove(a);
+//					agentOrder.add(a);
+//				}
 				
 				combinedSolution.add(state);
 				System.err.println(act);
@@ -510,14 +516,29 @@ public class AIClient {
 																							// state
 				
 				// Check if there is another way to solve this conflict before requesting help
+				int lookAhead = 2;
+				if (node.action.actionType == Type.Move) {
+					lookAhead = 1;
+				}
+				
 				Node nextNode = null;
-				if (originalSolutions[a] != null && originalSolutions[a].size() > 1)
-					nextNode = originalSolutions[a].get(1);
-				else if (solutions[a].size() > 1)
-					nextNode = solutions[a].get(1);
+				if (originalSolutions[a] != null && originalSolutions[a].size() > lookAhead) {
+					nextNode = originalSolutions[a].get(lookAhead);
+				}
+				else if (solutions[a].size() > lookAhead) {
+					nextNode = solutions[a].get(lookAhead);
+				} else {
+					for (Node n : solutions[a]) {
+						System.err.println("Ikke langt igen!!!");
+						System.err.println(n);
+					}
+				}
 				
 				if (nextNode != null) {
 					Node newInitialNode = currentStates[a].copy();
+					//newInitialNode.boxes = new Box[client.getMaxRow()][client.getMaxCol()];
+					newInitialNode.goals = new Goal[client.getMaxRow()][client.getMaxCol()];
+					newInitialNode.agentGoal = new Pos(nextNode.agentRow, nextNode.agentCol);
 					System.err.println("Vi finder ny plan");
 					
 					Pos boxPos = null;
@@ -543,9 +564,15 @@ public class AIClient {
 					for (int row = 0; row < client.getMaxRow(); row++) {
 						for (int col = 0; col < client.getMaxCol(); col++) {
 							if (boxes[row][col] != null) {
-								if (boxPos == null || !(boxPos.row == row && boxPos.col == col)) {
-									client.getTempWalls()[row][col] = true;	
-								}	
+								//if (boxPos == null || !(boxPos.row == row && boxPos.col == col)) {
+								if (boxes[row][col].color != node.getAgent().color) {
+									client.getTempWalls()[row][col] = true;
+								} else if (boxPos != null && boxPos.row == row && boxPos.col == col) {
+									//newInitialNode.boxes[row][col] = boxes[row][col];
+								}
+							}
+							if (nextNode.boxes[row][col] != null) {
+								newInitialNode.goals[row][col] = new Goal(Character.toLowerCase(nextNode.boxes[row][col].getLabel()), new Pos(row,col));
 							}
 							if (agents[row][col] != null) {
 								if (!agents[row][col].equals(node.getAgent())) {
@@ -555,14 +582,27 @@ public class AIClient {
 						}
 					}
 					
-					
+					System.err.println(newInitialNode);
+					try {
+						TimeUnit.SECONDS.sleep(5);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					//client.getTempWalls()[node.getRequired().row][node.getRequired().col] = true;
+					LinkedList<Node> tempSolution = createSolution(getStrategy("astar", newInitialNode), client, newInitialNode, null, nextNode);
 					
-					LinkedList<Node> tempSolution = createSolution(getStrategy("bfs", newInitialNode), client, newInitialNode, null, nextNode);
-					
-					if (!tempSolution.isEmpty()) {
+					if (tempSolution != null && !tempSolution.isEmpty()) {
 						System.err.println("Vi fandt ny plan");
 						System.err.println(tempSolution.toString());
+						
+						if (originalSolutions[a] == null) {
+							while(lookAhead > 0) {						
+								solutions[a].poll();
+								lookAhead--;
+							}
+						}
+						
 						originalSolutions[a] = solutions[a];
 						solutions[a] = tempSolution;
 						
