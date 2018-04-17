@@ -33,6 +33,7 @@ public class Node {
 	public Goal[][] goals;
 	
 	public Pos agentGoal;
+	public LinkedList<Pos> requestedPositions; 
 	
 	public Node parent;
 	public Command action;
@@ -54,6 +55,7 @@ public class Node {
 		this.boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		
 		this.agentGoal = parent == null ? null : parent.agentGoal;
+		this.requestedPositions = parent == null ? null : parent.requestedPositions;
 		
 		this.g = parent == null ? 0 : parent.g() + 1;
 	}
@@ -72,36 +74,26 @@ public class Node {
 
 	public boolean isSubGoalState(Node node) {
 		return this.equals(node);
-	}	
-	
-	public boolean requestFulfilled(LinkedList<Pos> pos) {
-		boolean empty = true;
-		for(Pos p : pos) {
-			if (p != null && !isEmpty(p)) {
-				empty = false;
-				break;
-			}
-		}
-		return empty;
- 		
 	}
 	
 	public boolean isGoalState() {
-//		for (Goal goal : client.getGoalList()) {
-//			if (goal.hasBox())
-//				System.err.println(goal.getLabel() + " : " + goal.getBox().getLabel());
-//			if (!goal.hasBox()) {
-//				return false;	
-//			}
-//		}
+
+		// Check for positions, if another agents has requested something
+		if (requestedPositions != null) {
+			
+			boolean empty = true;
+			for(Pos p : requestedPositions) {
+				if (p != null && !isEmpty(p)) {
+					empty = false;
+					break;
+				}
+			}
+			
+			return empty && parent != null && parent.isEmpty(requestedPositions.get(1));
+		}
 		
-//		for (Goal goal : client.getGoalList()) {
-//			Box goalBox = this.boxes[goal.getPos().x][goal.getPos().y]; 
-//			if (goalBox == null)
-//				return false;
-//			if (Character.toLowerCase(goalBox.getLabel()) != goal.getLabel())
-//				return false;
-//		}
+		// Check if agents is placed correct, if he is trying to find a solutions to a conflict, without asking for help
+		if (agentGoal != null && (agentGoal.row != agentRow || agentGoal.col != agentCol)) return false; 
 
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
@@ -172,7 +164,7 @@ public class Node {
 	}
 
 	private boolean cellIsFree(int row, int col) {
-		return !client.getWalls()[row][col] && !client.getTempWalls()[row][col];
+		return !client.getWalls()[row][col] && !client.getTempWalls()[row][col] && boxes[row][col] == null;
 	}
 	
 	public boolean isEmpty(Pos pos) {
@@ -238,15 +230,21 @@ public class Node {
 				break;
 			}
 			for (int col = 0; col < client.getMaxCol(); col++) {
-				if (agentGoal != null && agentGoal.row == row && agentGoal.col == col) {
+				if (agentGoal != null && agentGoal.row == row && agentGoal.col == col && client.getTempWalls()[row][col]) {
+					s.append("P"); // Hvis der står P i en state, så er der noget galt, for så er der et goal under en væg 
+				} else if (agentGoal != null && agentGoal.row == row && agentGoal.col == col) {
 					s.append("L");
-				} else if (client.getWalls()[row][col]) {
-					s.append("+");
-				} else if (client.getTempWalls()[row][col]) {
+				} else if (goals[row][col] != null && client.getTempWalls()[row][col]) {
+					s.append("Q"); // If a goal is inside a box
+				} else if (goals[row][col] != null && this.boxes[row][col] != null && Character.toLowerCase(this.boxes[row][col].getLabel()) == (this.goals[row][col].getLabel())) {
+					s.append("Å"); // If a goal is on top of a box
+				} else if (goals[row][col] != null && this.boxes[row][col] != null) {
+					s.append("W"); // If a goal is on top of a box
+				} else if (client.getWalls()[row][col] || client.getTempWalls()[row][col]) {
 					s.append("+");
 				} else if (this.boxes[row][col] != null) {
 					s.append(this.boxes[row][col]);
-				} else if ((goals[row][col] != null ? goals[row][col].getLabel() : 0) > 0) {
+				} else if (goals[row][col] != null) {
 					s.append(goals[row][col]);
 				} else if (row == this.agentRow && col == this.agentCol) {
 					s.append(agent.getLabel());
@@ -309,7 +307,11 @@ public class Node {
 						
 						for (Goal goal : freeGoals) {
 							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
-								int distanceToGoal = goal.getPos().manhattanDistanceToPos(new Pos(row,col));
+								
+								int distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
+													 requestedPositions != null ? 0 :
+													 client.getDijkstraMap().get(goal)[row][col];
+								
 								if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
 									distanceToNearestGoal = distanceToGoal;
 							}
@@ -337,18 +339,19 @@ public class Node {
 		double distanceFactor = 1.0;
 		double agentGoalFactor = 1.0;
 
-		// Calculate the amount of goals reached
+		// Calculate the amount of goals missing
 		double goalScore = client.getGoalList().size();
 		
 		if (freeGoals.isEmpty() && agentGoal != null) {
 			distanceToAgentGoal = (int) ((Math.abs(agentGoal.row - agentRow) + Math.abs(agentGoal.col - agentCol)) * agentGoalFactor);
 		} else {
+			if (agentGoal != null) distanceToAgentGoal = client.getMaxRow() + client.getMaxCol();
 			for (Goal goal : freeGoals) {
 				Box goalBox = this.boxes[goal.getPos().row][goal.getPos().col]; 
 				if (goalBox != null)
 					if (Character.toLowerCase(goalBox.getLabel()) == goal.getLabel())
 						goalScore -= 1;
-			}	
+			}
 		}
 		
 		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
