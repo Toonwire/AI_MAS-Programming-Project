@@ -89,4 +89,60 @@ public class Command {
 //			return String.format("[%s(%s,%s)]", this.actionType.toString(), this.dir1.toString(), this.dir2.toString());
 			return String.format("%s(%s,%s)", this.actionType.toString(), this.dir1.toString(), this.dir2.toString());
 	}
+
+	
+	public static Command reverse(String action) {
+		//Direction
+		Dir dir1 = null;
+		Dir dir2 = null;
+		boolean move = false;
+		if(action.contains("Move")) {
+			move = true;
+		}
+		
+		String s = action.replaceAll("N", "s");
+		s = s.replaceAll("S", "n");
+		s = s.replaceAll("E", "w");
+		s = s.replaceAll("W", "e");
+
+		
+		s = s.split("[\\(\\)]")[1];
+		switch(s.split(",")[0]) {
+			case "e":
+				dir1 = Dir.E;
+				break;
+			case "w":
+				dir1 = Dir.W;
+				break;
+			case "n":
+				dir1 = Dir.N;
+				break;
+			case "s":
+				dir1 = Dir.S;
+			}
+		
+		if(!move) {
+			switch(s.split(",")[1]) { //back to original
+				case "e":
+					dir2 = Dir.W;
+					break;
+				case "w":
+					dir2 = Dir.E;
+					break;
+				case "n":
+					dir2 = Dir.S;
+					break;
+				case "s":
+					dir2 = Dir.N;
+			}
+		}
+		
+		//Type
+		if(move) {
+			return new Command(dir1);
+		} else if (action.contains("Push")) {
+			return new Command(Type.Pull, dir1, dir2);
+		}
+		return new Command(Type.Push, dir1, dir2);
+	}
 }

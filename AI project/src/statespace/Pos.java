@@ -1,5 +1,6 @@
 package statespace;
 
+import java.util.Arrays;
 
 public class Pos{
 	public int row, col;
@@ -14,8 +15,18 @@ public class Pos{
 		return "("+row+","+col+")";
 	}
 	
-	public boolean equals(Pos pos) {
-		return this.row == pos.row && this.col == pos.col;
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (this.getClass() != obj.getClass())
+			return false;
+		Pos pos = (Pos) obj;
+		if (this.row != pos.row || this.col != pos.col)
+			return false;
+		return true;
 	}
 	
 	public int manhattanDistanceToPos(Pos p) {

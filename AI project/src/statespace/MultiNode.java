@@ -1,10 +1,7 @@
 package statespace;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Arrays;
 
-import statespace.AIClient.Agent;
 import statespace.Command.Type;
 
 
@@ -33,17 +30,18 @@ public class MultiNode {
 	}
 
 	public MultiNode(MultiNode parent, int i, Command command) {
-		this.client = parent.client;
-		this.boxes = new Box[client.getMaxRow()][client.getMaxCol()];
-		this.agents = new Agent[client.getMaxRow()][client.getMaxCol()];
+//		System.err.println(command.toString()+ " IN "+parent);
+		client = parent.client;
+		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
+		agents = new Agent[client.getMaxRow()][client.getMaxCol()];
 		agentPos = new Pos[client.getAgentNum()];
 		
 		//Copy
 		for (int row = 0; row < client.getMaxRow(); row++) {
-			System.arraycopy(parent.boxes[row], 0, this.boxes[row], 0, client.getMaxCol());
-			System.arraycopy(parent.agents[row], 0, this.agents[row], 0, client.getMaxCol());
+			System.arraycopy(parent.boxes[row], 0, boxes[row], 0, client.getMaxCol());
+			System.arraycopy(parent.agents[row], 0, agents[row], 0, client.getMaxCol());
 		}
-		System.arraycopy(parent.agentPos, 0, this.agentPos, 0, parent.agentPos.length);
+		System.arraycopy(parent.agentPos, 0, agentPos, 0, parent.agentPos.length);
 
 		//Change
 		int agentRow = agentPos[i].row;
@@ -62,7 +60,7 @@ public class MultiNode {
 		if (command.actionType == Type.Push) {
 			int newBoxRow = newAgentRow + Command.dirToRowChange(command.dir2);
 			int newBoxCol = newAgentCol + Command.dirToColChange(command.dir2);
-			boxes[newBoxRow][newBoxCol] = this.boxes[newAgentRow][newAgentCol];
+			boxes[newBoxRow][newBoxCol] = boxes[newAgentRow][newAgentCol];
 			boxes[newAgentRow][newAgentCol] = null;	
 			
 		} else if (command.actionType == Type.Pull) {
@@ -77,9 +75,9 @@ public class MultiNode {
 	public String toString() {
 		StringBuilder s = new StringBuilder();
 		for (int row = 0; row < client.getMaxRow(); row++) {
-			if (!client.getWalls()[row][0]) {
-				break;
-			}
+//			if (!client.getWalls()[row][0]) {
+//				break;
+//			}
 			for (int col = 0; col < client.getMaxCol(); col++) {
 				if (boxes[row][col] != null) {
 					s.append(this.boxes[row][col]);
@@ -100,5 +98,34 @@ public class MultiNode {
 
 	public boolean isEmpty(Pos pos) {
 		return (agents[pos.row][pos.col] == null) && (boxes[pos.row][pos.col] == null);
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (this.getClass() != obj.getClass())
+			return false;
+		MultiNode other = (MultiNode) obj;
+		if (!Arrays.deepEquals(this.boxes, other.boxes))
+			return false;
+		if (!Arrays.deepEquals(this.agents, other.agents))
+			return false;
+		return true;
+	}
+	
+	public boolean isGoalState() {
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				char g = client.getGoals()[row][col] != null ? client.getGoals()[row][col].getLabel() : 0;
+				char b = boxes[row][col] != null ? Character.toLowerCase(boxes[row][col].getLabel()) : 0;
+				if (g > 0 && b != g) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 }

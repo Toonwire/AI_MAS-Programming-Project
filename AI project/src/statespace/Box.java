@@ -8,6 +8,10 @@ public class Box extends Element {
 		super(label);
 		this.color = color;
 	}
+
+	public String getColor() {
+		return color;
+	}
 	
 	
 }
