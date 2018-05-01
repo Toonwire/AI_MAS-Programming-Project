@@ -16,6 +16,11 @@ public class Pos{
 	}
 	
 	@Override
+	public int hashCode() {
+		return this.toString().hashCode();
+	}
+	
+	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;

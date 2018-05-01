@@ -14,9 +14,13 @@ public class Agent {
 	public Agent getsHelp = null;
 	public LinkedList<Pos> avoidList;
 	public boolean getHelp = true;
-	public Agent(char id, String color) {
+	
+	public AIClient client;
+	
+	public Agent(char id, String color, AIClient client) {
 		this.id = id;
 		this.color = color;
+		this.client = client;
 		reachableBoxes = new LinkedList<>();
 		System.err.println("Found " + color + " agent " + id);
 	}
@@ -61,5 +65,24 @@ public class Agent {
 
 	public void setHelper(Agent helper) {
 		this.helper = helper;
+	}
+	
+	public LinkedList<Box> getBoxesNotInGoal() {
+		LinkedList<Box> list = new LinkedList<Box>();
+		
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				 Box b = client.getCurrentState().boxes[row][col];
+				 Goal g = client.getGoals()[row][col];
+				 
+				 if (b != null) {
+					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {
+						 list.add(b);
+					 }
+				 }
+			}
+		}
+		System.err.println(list);
+		return list;
 	}
 }
