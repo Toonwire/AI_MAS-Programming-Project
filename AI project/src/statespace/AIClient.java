@@ -444,18 +444,22 @@ public class AIClient {
 			boolean stop = false;
 			actions = new String[agentCounter];
 			boolean done = true;
-			System.err.println("\n-----------------------START OVER "+agentOrder);
+			System.err.println("\n---------- NEXT STATE -------------");
+			System.err.println("Agent order: " + agentOrder);
+			
 			reachedAgent = 0;
 			while (reachedAgent < agentOrder.size()) {
 				int a = agentOrder.get(reachedAgent).getID();
-//				if(currentStates[a].isGoalState() && agentIDs[a].getsHelp != null) {
-//					agentIDs[a].getsHelp.isHelping = null;
-//					agentIDs[a].getsHelp = null;
-//				}
+				
 				if(actions[a] == null) { //no action yet
-					System.err.println("DO: "+a+" at "+reachedAgent);
+					System.err.println("Agent: " + a + " turn at " + reachedAgent + " in order");
 		
+					// If current agent is done with its current goal
 					if((solutions[a] == null || solutions[a].isEmpty())) {
+						
+						// IF current agent is getting help
+						// AND current agent is helping the same agent that helps him
+						// AND current agent is allowed to get help
 						if(agentIDs[a].getsHelp != null && agentIDs[a].getsHelp == agentIDs[a].isHelping && agentIDs[a].getHelp) {
 							System.err.println(a+"STOPPED");	
 							stopped++;
@@ -464,14 +468,17 @@ public class AIClient {
 							agentIDs[a].isHelping.getsHelp = null;
 							agentIDs[a].isHelping = null;
 							agentIDs[a].getsHelp = null;
+							
+						// Otherwise, if you are helping another and your goal is done (the goal of helping the other agent)
+					    // Release yourself
+//						} else if (agentIDs[a].isHelping != null) {
+//							agentIDs[a].isHelping = null;
+//							agentIDs[a].getHelp = true;
 						}
 						Node newInitialState = currentStates[a].copy();
 						
-						System.err.println("hello: " + newInitialState.isRealGoalState());
-						System.err.println(newInitialState);
 						if (!newInitialState.isRealGoalState()) {
-
-							System.err.println("go for new so");
+							
 							newInitialState.boxPosition = null;
 							newInitialState.requestedPositions = null;
 							newInitialState.agentGoal = null;
@@ -486,21 +493,17 @@ public class AIClient {
 								newInitialState.goToBox = box;
 								newInitialState.goTo = true;
 							}
-							
-
-							System.err.println(newInitialState.goToBox);
-							System.err.println(newInitialState.goTo);
-							
+														
 							if(!newInitialState.isGoalState()) {
-								System.err.println("isGoalState");
+
 								//Create solution to solve own problem
 								newInitialState.ignore = true;
 	
 								solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 								updateRequirements(solutions[a], a);
-								System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
-	//							System.err.println(a+"'S OWN NEW SOLUTION \n");	
+//								System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
+//								System.err.println(a+"'S OWN NEW SOLUTION \n");	
 							} else {
 								newInitialState.goTo = !newInitialState.goTo;
 								
@@ -512,15 +515,14 @@ public class AIClient {
 								}
 								
 								if(!newInitialState.isGoalState()) {
-									System.err.println("isGoalState2");
 									//Create solution to solve own problem
 									newInitialState.ignore = true;
 	
 									solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 									originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 									updateRequirements(solutions[a], a);
-									System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
-	//								System.err.println(a+"'S OWN NEW SOLUTION \n");	
+//									System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
+//									System.err.println(a+"'S OWN NEW SOLUTION \n");	
 								}
 							}
 						}
@@ -530,8 +532,6 @@ public class AIClient {
 	//				System.err.println("EXECUTE: "+a1+ " \n"+solutions[a1]+ " REQUIRING "+Arrays.toString(requests[a1]));
 					actions[a] = getAction(solutions, a, reachedAgent);
 					
-					
-					
 					//At least one agent has a proper action
 					if(actions[a] != "NoOp") {
 						done = false;
@@ -540,11 +540,12 @@ public class AIClient {
 					//Next helper
 
 					System.err.println(Arrays.toString(actions));
+					
 					if((solutions[a] != null && !solutions[a].isEmpty())) {
 						if(agentIDs[a].getHelp) {
 							getHelp(reachedAgent, a, solutions[a].get(0));
 						} else {
-						System.err.println("CANNOT GET HELP");
+							System.err.println("CANNOT GET HELP");
 						}
 					}
 				}
@@ -553,6 +554,7 @@ public class AIClient {
 			if(stop) {
 				break;
 			}
+			
 			//OUT OF INNER LOOP
 			boolean execute = true;
 			if(done) {
@@ -568,19 +570,14 @@ public class AIClient {
 //					break;
 				}
 			}
+			
 			if(execute){
-//				if(combinedSolution.contains(state)) {
-//					System.err.println("contains");
-//					int i = combinedSolution.indexOf(state)+1;
-//					while(combinedSolution.size() > i) {
-//						combinedSolution.remove(combinedSolution.size()-1);
-//					}
-//					System.err.println("SSSSSSSSSSSOL "+combinedSolution);
-//				} else {
-//					System.err.println("add");
-					combinedSolution.add(state);
-//				}
-				//Completed goals
+
+				// Add state to the combined solution, since the iteration is done
+				combinedSolution.add(state);				
+				
+				// Completed the final goals
+				// If so, release any helpers locked to this agent
 				for(Agent a : agentIDs) {
 					if(currentStates[a.getID()].isRealGoalState()) {
 						System.err.println(currentStates[a.getID()]+"is a goal state");
@@ -616,6 +613,7 @@ public class AIClient {
 				System.out.println(act);
 				System.err.println(act);
 				System.err.println(state);
+				
 				if(stop) {
 					break;
 				}
@@ -690,6 +688,13 @@ public class AIClient {
 			System.err.println("helper.isHelping: "+helper.isHelping);
 		}
 		
+		// IF helper is not null
+		// AND helper is not current agent (inNeed)
+		// AND 
+		// -- helper is not helping anyone else
+		// OR helper is already helping the current agent
+		// OR the one the helper is helping has no actions
+		// CONCLUSION, the helper can help the current agent
 		if (helper != inNeed && helper != null && (helper.isHelping == null || helper.isHelping == inNeed || actions[helper.isHelping.getID()] == null)) { //need/can get help
 //			if(actions[helper.getID()] != null && actions[helper.getID()] != "NoOp" && currentStates[helper.getID()].isGoalState()) {
 //				System.err.println("return 2");
@@ -697,6 +702,10 @@ public class AIClient {
 //			}
 
 //			System.err.println(helper.getID()+" can help "+inNeed.getID());
+			
+			// IF helper is not getting help at all
+			// AND current agent is not helping the helper
+			// CONCLUSION the helper are not getting help
 			if(helper.getsHelp != inNeed && (helper.getsHelp == null || actions[helper.getsHelp.getID()] == null)) {//&& inNeed.isHelping != helper) {
 				System.err.println(helper.getID()+" may help "+inNeed.getID());
 				if(aAction == null) { //available helper later				
@@ -716,7 +725,10 @@ public class AIClient {
 				planHelp(inNeed, helper, atOne);
 				reachedAgent = agentOrder.indexOf(helper)-1;
 				
-			} else if(helper.getsHelp == inNeed && !helper.getHelp) {//Mutual help
+			// If helper is already helping current agent
+		    // AND helper cannot get help
+			// CONCLUSION they are helping each other
+			} else if (helper.getsHelp == inNeed && !helper.getHelp) {//Mutual help
 				helper.isHelping = inNeed;
 				inNeed.getsHelp = helper;
 				agentOrder.remove(helper);
