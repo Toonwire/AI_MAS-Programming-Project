@@ -249,16 +249,20 @@ public class AIClient {
 					if(colorAgents.get(c) > 1) {
 						Goal[][] reachableGoals = new Goal[MAX_ROW][MAX_COL];
 						LinkedList<Goal> reachableGoalsList = new LinkedList<>();
-						for(Goal g : colorGoals.get(c)) {
-							Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
-							int row2 = g.getPos().row;
-							int col2 = g.getPos().col;
-							gsTemp[row2][col2] = g;
-							initialState.goals = gsTemp;
-							LinkedList<Node> sol = search(getStrategy("astar", initialState), initialState);
-							if(sol != null && !sol.isEmpty()) {
-								reachableGoals[row2][col2] = g; //add to final goal array
-								reachableGoalsList.add(g);
+						if (colorGoals.get(c) != null) { // ACCOUNT FOR AGENTS WITHOUT A GOAL
+							for(Goal g : colorGoals.get(c)) {
+								if (g != null) {
+									Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
+									int row2 = g.getPos().row;
+									int col2 = g.getPos().col;
+									gsTemp[row2][col2] = g;
+									initialState.goals = gsTemp;
+									LinkedList<Node> sol = search(getStrategy("astar", initialState), initialState);
+									if(sol != null && !sol.isEmpty()) {
+										reachableGoals[row2][col2] = g; //add to final goal array
+										reachableGoalsList.add(g);
+									}
+								}
 							}
 						}
 						a.reachableGoals = reachableGoalsList;
@@ -795,6 +799,7 @@ public class AIClient {
 		helper.isHelping = inNeed;
 		inNeed.getsHelp = helper;
 		
+		if (currentStates[helper.getID()] == null) System.err.println("HELPER HAS NO STATE");
 		Node newInitialState = currentStates[helper.getID()].copy();
 		newInitialState.ignore = false;
 		newInitialState.help = inNeed;
