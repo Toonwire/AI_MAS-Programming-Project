@@ -357,7 +357,7 @@ public class AIClient {
 		int iterations = 0;
 		while (true) {
 			if (iterations == 1000) {
-				System.err.println(strategy.searchStatus());
+//				System.err.println(strategy.searchStatus());
 				iterations = 0;
 			}
 			
@@ -415,7 +415,7 @@ public class AIClient {
 		for (Agent a : initialStates.keySet()) {
 			Node initialState = initialStates.get(a);
 			
-			LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
+			LinkedList<Box> aBoxes = a.getBoxesNotInGoal(a);
 			Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 			initialState.goToBox = box;
 			initialState.goTo = true;
@@ -426,7 +426,7 @@ public class AIClient {
 			
 			if (solution != null) {
 				solutions[a.getID()] = solution;
-				originalSolutions[a.getID()] = (LinkedList<Node>) solution.clone();
+//				originalSolutions[a.getID()] = (LinkedList<Node>) solution.clone();
 				updateRequirements(solution, a.getID());
 				System.err.println(solution);
 //				allSolutions[a.getID()] = new LinkedList<LinkedList<Node>>();
@@ -492,7 +492,7 @@ public class AIClient {
 							}
 							
 							if (newInitialState.goTo || newInitialState.goToBox == null) {
-								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
+								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
 								Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 								newInitialState.goToBox = box;
 								newInitialState.goTo = true;
@@ -504,7 +504,7 @@ public class AIClient {
 								newInitialState.ignore = true;
 	
 								solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
-								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
+//								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 								updateRequirements(solutions[a], a);
 //								System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
 //								System.err.println(a+"'S OWN NEW SOLUTION \n");	
@@ -512,7 +512,7 @@ public class AIClient {
 								newInitialState.goTo = !newInitialState.goTo;
 								
 								if (newInitialState.goTo) {
-									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
+									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
 									Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 									newInitialState.goToBox = box;
 									newInitialState.goTo = true;
@@ -523,7 +523,7 @@ public class AIClient {
 									newInitialState.ignore = true;
 	
 									solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
-									originalSolutions[a] = new LinkedList<Node>(solutions[a]);
+//									originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 									updateRequirements(solutions[a], a);
 //									System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
 //									System.err.println(a+"'S OWN NEW SOLUTION \n");	
@@ -571,7 +571,7 @@ public class AIClient {
 					resetAgents();
 //					startOver(strategies, agentOrder.get(0));
 					execute = false;
-//					break;
+					break;
 				}
 			}
 			
@@ -983,23 +983,12 @@ public class AIClient {
 			if ((!state.isEmpty(p) && state.agents[p.row][p.col] != node.getAgent()) // conflict with other agents in current state
 					|| !combinedSolution.getLast().isEmpty(p)) { // conflict with beginning of state
 
-//				System.err.println("WANT: "+p);
-//				System.err.println("Same: "+state);
-//				System.err.println("Prev: "+(combinedSolution.getLast()));
 				System.err.println("NO OP 1: "+node.action.toString());
 				
 				return "NoOp";	
 			}
 			
-			//Conflict with higher-ranked agents
-//			for(int j = 0; j < i; j++) { //Higher-order agents
-//				int a2 = agentOrder.get(j).getID();
-//				Pos pos = requests[a2][1];
-//				if (pos != null && node != null && node.getRequired().equals(pos)) {
-//					System.err.println("NO OP 2: "+node.action.toString());
-//					return "NoOp";
-//				}
-//			}
+			
 			
 			//Can execute
 			state = new MultiNode(state, a, node.action);
@@ -1063,6 +1052,7 @@ public class AIClient {
 			System.err.println("Maximum memory usage exceeded.");
 			solution = null;
 		}
+		
 		return solution;
 	}
 
