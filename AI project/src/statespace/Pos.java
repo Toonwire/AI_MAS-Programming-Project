@@ -1,7 +1,5 @@
 package statespace;
 
-import java.util.Arrays;
-
 public class Pos{
 	public int row, col;
 	

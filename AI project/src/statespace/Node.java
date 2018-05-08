@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import statespace.Command;
 import statespace.Command.Type;
@@ -51,7 +52,8 @@ public class Node {
 	public Pos boxPosition;
 
 	public Box goToBox;
-
+	public Goal goToGoal;
+	
 	public boolean goTo;
 	
 	public Node(Node parent, AIClient client, Agent agent, Pos agentPos, Command action) {
@@ -63,32 +65,14 @@ public class Node {
 		this.action = action;
 		this.goals = new Goal[client.getMaxRow()][client.getMaxCol()];
 		this.boxes = new Box[client.getMaxRow()][client.getMaxCol()];
-		
-		this.agentGoal = parent == null ? null : parent.agentGoal;
-		
-		this.g = parent == null ? 0 : parent.g() + 1;
 	}
 	
 	public int g() {
-		int penalty = 0;
-		if(required != null) {
-			Box box = client.getCurrentSubState().boxes[required.row][required.col];
-			if (box != null && !box.getColor().equals(agent.getColor())) {
-				penalty += 50;
-			} 
-			if (client.getCurrentSubState().agents[required.row][required.col] != null)
-				penalty += 5;
-			Goal goal = client.getGoals()[required.row][required.col];
-			if(goal != null && goals[required.row][required.col] == null) {
-				penalty += 5;
-			}
-		}
-		return this.g + penalty;
+		return this.g;
 	}
 	
 	public int h() {
-		int penalty = 0;
-		return this.h > 0 ? this.h + penalty : this.calculateDistanceToGoal() + penalty;
+		return this.h > 0 ? this.h : this.calculateDistanceToGoal();
 	}
 
 	public boolean isInitialState() {
@@ -127,10 +111,10 @@ public class Node {
 			
 			return empty; // && parent != null && parent.isEmpty(requestedPositions.get(1));
 		}
-
+		
 		// Check if agents is placed correct, if he is trying to find a solutions to a conflict, without asking for help
 		if (agentGoal != null && (agentGoal.row != agentRow || agentGoal.col != agentCol)) return false; 
-
+		
 		if (goToBox == null) return isRealGoalState();
 		
 		//Test
@@ -149,12 +133,15 @@ public class Node {
 				success = goToBox == boxes[agentRow][agentCol+1];
 			}
 		} else {
+			
 			for (int row = 1; row < client.getMaxRow() - 1; row++) {
 				for (int col = 1; col < client.getMaxCol() - 1; col++) {
 					if (boxes[row][col] == goToBox) {
-						char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
-						char b = Character.toLowerCase(goToBox.getLabel());
-						return g == b;
+						//char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
+						//char b = Character.toLowerCase(goToBox.getLabel());
+						//return g == b;
+						
+						return goToGoal.getPos().row == row && goToGoal.getPos().col == col;
 					}
 				}
 			}
@@ -179,7 +166,7 @@ public class Node {
 			// Determine applicability of action
 			int newAgentRow = this.agentRow + Command.dirToRowChange(c.dir1);
 			int newAgentCol = this.agentCol + Command.dirToColChange(c.dir1);
-
+			
 			if (c.actionType == Type.Move) {
 				// Check if there's a wall or box on the cell to which the agent is moving
 				if (this.cellIsFree(newAgentRow, newAgentCol)) {
@@ -196,7 +183,13 @@ public class Node {
 					int newBoxRow = newAgentRow + Command.dirToRowChange(c.dir2);
 					int newBoxCol = newAgentCol + Command.dirToColChange(c.dir2);
 					// .. and that new cell of box is free
-					if (this.cellIsFree(newBoxRow, newBoxCol)) {
+					
+					boolean notAllowed = false;
+					for (Box box : agent.getReachableBoxes())
+						if (box.inWorkingProcess && box == this.boxes[newAgentRow][newAgentCol] && box != goToBox)
+							notAllowed = true;
+					
+					if (this.cellIsFree(newBoxRow, newBoxCol) && !notAllowed) {
 						Node n = this.ChildNode(newAgentRow, newAgentCol, c);
 //						n.action = c;
 //						n.agentRow = newAgentRow;
@@ -211,7 +204,13 @@ public class Node {
 				if (this.cellIsFree(newAgentRow, newAgentCol)) {
 					int boxRow = this.agentRow + Command.dirToRowChange(c.dir2);
 					int boxCol = this.agentCol + Command.dirToColChange(c.dir2);
-					if (this.boxAt(boxRow, boxCol)) {
+					
+					boolean notAllowed = false;
+					for (Box box : agent.getReachableBoxes())
+						if (box.inWorkingProcess && box == this.boxes[boxRow][boxCol] && box != goToBox)
+							notAllowed = true;
+					
+					if (this.boxAt(boxRow, boxCol) && !notAllowed) {
 						Node n = this.ChildNode(newAgentRow, newAgentCol, c);
 //						n.action = c;
 //						n.agentRow = newAgentRow;
@@ -261,11 +260,28 @@ public class Node {
 					&& !agent.isHelping.getReachableBoxes().contains(client.getCurrentSubState().boxes[row][col])
 					&& !agent.isHelping.getReachableBoxes().contains(client.getCurrentState().boxes[row][col]);
 		}
-		return !client.getWalls()[row][col] && boxes[row][col] == null && helping;
+		
+		Box b = null;
+		if (agent.isHelping != null) {
+			b = client.getCurrentState(agent.isHelping.getID()).goToBox;
+		}
+		
+		boolean allowed = false;
+		for (Box box : agent.getReachableBoxes())
+			if (box.inWorkingProcess && box == boxes[row][col])
+				allowed = true;
+		
+		
+		return !client.getWalls()[row][col] && (boxes[row][col] == null || allowed) && helping;
 	}
 	
 	public boolean isEmpty(Pos pos) {
-		return boxes[pos.row][pos.col] == null && !(agentRow == pos.row && agentCol == pos.col);
+		Node node = null;
+		if (agent.isHelping != null) {
+			node = client.getCurrentState(agent.isHelping.getID());	
+		}
+		
+		return (boxes[pos.row][pos.col] == null || boxes[pos.row][pos.col]  == node.goToBox) && !(agentRow == pos.row && agentCol == pos.col);
 	}
 	private boolean boxAt(int row, int col) {
 		return this.boxes[row][col] != null;
@@ -280,6 +296,10 @@ public class Node {
 		copy.requestedPositions = requestedPositions;
 		copy.goTo = goTo;
 		copy.goToBox = goToBox;
+		copy.goToGoal = goToGoal;
+		copy.agentGoal = agentGoal;
+		copy.g = g + 1;
+		
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			System.arraycopy(this.boxes[row], 0, copy.boxes[row], 0, client.getMaxCol());
 		}
@@ -354,7 +374,61 @@ public class Node {
 		return s.toString();
 	}
 	
-public int calculateDistanceToGoal() {
+	public int calculateDistanceToGoal() {
+
+		int penalty = 0;
+		if(required != null) {
+			Box box = client.getCurrentSubState().boxes[required.row][required.col];
+			if (box != null && !box.getColor().equals(agent.getColor())) {
+				penalty += 50;
+			} 
+			if (client.getCurrentSubState().agents[required.row][required.col] != null)
+				penalty += 5;
+			Goal goal = client.getGoals()[required.row][required.col];
+			if(goal != null && goals[required.row][required.col] == null) {
+				penalty += 5;
+			}
+		}
+		
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				
+				Box box = client.getCurrentSubState().boxes[row][col];
+				Goal goal = client.getGoals()[row][col];
+				
+				if (box != null && goal != null && Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+					penalty += 5;
+				}
+			}
+		}
+		// If the agent is doing his own shit
+		if (goToBox != null) {
+
+			// If the agent is going for a box  
+			if (goTo) {
+				for (int row = 1; row < client.getMaxRow() - 1; row++) {
+					for (int col = 1; col < client.getMaxCol() - 1; col++) {
+						if (boxes[row][col] == goToBox) {
+							return Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty;
+						}
+					}
+				}
+			
+			// If the agent is moving a box to its goal
+			} else {
+				for (int row = 1; row < client.getMaxRow() - 1; row++) {
+					for (int col = 1; col < client.getMaxCol() - 1; col++) {
+						if (boxes[row][col] == goToBox) {
+							return client.getDijkstraMap().get(goToGoal)[row][col] + penalty;
+						}
+					}
+				}
+			}
+		}
+		
+		
+		
+		
 		
 		int distanceToGoals = 0;
 		int distanceToBoxes = 0;
@@ -458,7 +532,7 @@ public int calculateDistanceToGoal() {
 		
 		int goalScoreSum = (int) (goalScore * goalFactor);
 		
-		return distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum + distanceToAgentGoal;
+		return distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum + distanceToAgentGoal + penalty;
 	}
 
 	public Pos getRequired() {
@@ -473,16 +547,33 @@ public int calculateDistanceToGoal() {
 			System.arraycopy(boxes[row], 0, n.boxes[row], 0, client.getMaxCol());
 		}
 		
+		n.required = required;
 		n.agentRow = agentRow;
 		n.agentCol = agentCol;
 		n.action = action;
 		n.goals = goals;
 		n.goTo = goTo;
 		n.goToBox = goToBox;
+		n.goToGoal = goToGoal;
 		return n;
 	}
 
 	public Agent getAgent() {
 		return agent;
 	}
+	
+	public void updateBoxes() {
+		System.err.println("BOX BEF: "+this);
+		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
+		for (int row = 0; row < client.getMaxRow(); row++) {
+			for (int col = 0; col < client.getMaxCol(); col++) {
+				Box b = client.getCurrentSubState().boxes[row][col];
+				if(b != null && agent.getReachableBoxes().contains(b)) {
+					boxes[row][col] = b;
+				}
+			}	
+		}
+		System.err.println("BOX AFT: "+this);
+	}
+
 }

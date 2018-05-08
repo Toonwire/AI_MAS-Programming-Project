@@ -69,20 +69,50 @@ public class Agent {
 	
 	public LinkedList<Box> getBoxesNotInGoal() {
 		LinkedList<Box> list = new LinkedList<Box>();
+		LinkedList<Integer> listCount = new LinkedList<Integer>();
 		
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-				 Box b = client.getCurrentState().boxes[row][col];
+				 Box b = client.getCurrentSubState().boxes[row][col];
 				 Goal g = client.getGoals()[row][col];
 				 
-				 if (b != null) {
+				 if (b != null && !b.inWorkingProcess) {
 					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {
-						 list.add(b);
+				
+						 char bc = Character.toLowerCase(b.getLabel());
+						 System.err.println(client.getGoalListMap());
+						 if (client.getGoalListMap().containsKey(bc)) {
+							 list.add(b);
+							 
+							 int distance = Integer.MAX_VALUE;
+							 
+							 for (Goal goal : client.getGoalListMap().get(bc)) {
+								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
+								 if (distance > dijkstra[row][col])
+									 distance = dijkstra[row][col];
+							 }
+							 
+							 listCount.add(distance);
+						 }
 					 }
 				 }
 			}
 		}
-		System.err.println(list);
+		
+		for (int i = 0; i < list.size(); i++) {
+			for (int j = 0; j < list.size() - 1; j++) {
+				if (listCount.get(j) > listCount.get(j + 1)) {
+					Integer tempCount = listCount.get(j);
+					listCount.remove(j);
+					listCount.add(j+1, tempCount);
+					
+					Box temp = list.get(j);
+					list.remove(j);
+					list.add(j+1, temp);
+				}
+			}
+		}
+		
 		return list;
 	}
 }

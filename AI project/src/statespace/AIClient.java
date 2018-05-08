@@ -15,8 +15,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import statespace.Strategy.*;
-import statespace.Command.Dir;
-import statespace.Command.Type;
 import statespace.Heuristic.*;
 
 public class AIClient {
@@ -31,7 +29,7 @@ public class AIClient {
 	private static Box[][] boxes;
 	private static int agentCounter = 0;
 
-	private List<Goal> goalList;
+	private ArrayList<Goal> goalList;
 	private Map<String, Box[][]> boxMap = new HashMap<>();
 	private Map<String, Goal[][]> goalMap = new HashMap<>();
 	private Map<Goal, String> goalColor = new HashMap<>();
@@ -131,7 +129,7 @@ public class AIClient {
 					if (c == null)
 						c = DEFAULT_COLOR;
 
-					Box box = new Box(chr,c);
+					Box box = new Box(chr,c, new Pos(row,col));
 					boxes[row][col] = box;
 					boxMap.get(c)[row][col] = box;
 				} else if ('a' <= chr && chr <= 'z') { // Goal.
@@ -166,7 +164,77 @@ public class AIClient {
 			}
 		}
 		
-
+		// Prioritize the goals
+		ArrayList<Integer> goalListCount = new ArrayList<Integer>();
+		for (int i = 0; i < goalList.size(); i++)
+			goalListCount.add(0);
+		
+		for (int redo = goalList.size(); redo > 0; redo--) {
+		
+			for (int i = 0; i < redo; i++) {
+				Goal goal = goalList.get(i);
+				
+				boolean[][] tempMap = new boolean[MAX_ROW][MAX_COL];
+				
+				for (int row = 0; row < MAX_ROW; row++)
+					System.arraycopy(walls[row], 0, tempMap[row], 0, MAX_COL);
+				
+				for (int goalCount = 0; goalCount < redo; goalCount++) {
+					Goal g = goalList.get(goalCount);
+					if (g != goal) {
+						tempMap[g.getPos().row][g.getPos().col] = true;
+					}
+				}
+				
+				int countFields = 0;
+				LinkedList<Pos> queue = new LinkedList<>();
+				queue.add(goal.getPos());
+				
+				while (true) {
+					
+					if (queue.isEmpty()) break;
+					Pos pos = queue.poll();
+	
+					if (0 <= pos.row - 1 && !tempMap[pos.row - 1][pos.col]) {
+						queue.add(new Pos(pos.row - 1, pos.col));
+						countFields++;
+					}
+					if (MAX_ROW > pos.row + 1 && !tempMap[pos.row + 1][pos.col]) {
+						queue.add(new Pos(pos.row + 1, pos.col));
+						countFields++;
+					}
+					if (0 <= pos.col - 1 && !tempMap[pos.row][pos.col - 1]) {
+						queue.add(new Pos(pos.row, pos.col - 1));
+						countFields++;
+					}
+					if (MAX_COL > pos.col + 1 && !tempMap[pos.row][pos.col + 1]) {
+						queue.add(new Pos(pos.row, pos.col + 1));
+						countFields++;
+					}
+					
+					tempMap[pos.row][pos.col] = true;
+				}
+				
+				goalListCount.remove(i);
+				goalListCount.add(i,countFields);
+			}
+			
+			// And now sort the prioritizing of goals
+			for (int i = 0; i < redo; i++) {
+				for (int j = 0; j < redo - 1; j++) {
+					if (goalListCount.get(j) > goalListCount.get(j + 1)) {
+						Integer tempCount = goalListCount.get(j);
+						goalListCount.remove(j);
+						goalListCount.add(j+1, tempCount);
+						
+						Goal temp = goalList.get(j);
+						goalList.remove(j);
+						goalList.add(j+1, temp);
+					}
+				}
+			}
+		}
+		
 		for (Map.Entry<Character, ArrayList<Goal>> entry : goalListMap.entrySet()) {
 			ArrayList<Goal> goals = entry.getValue();
 			
@@ -239,11 +307,10 @@ public class AIClient {
 							}
 						}
 					}
+					
 					initialState.boxes = reachableBoxes;
 //					initialState.boxes = boxMap.get(c);
 					a.setReachableBoxes(reachableBoxesList);
-					
-					
 					
 					//If agents of same color, only solve for reachable goals 
 					if(colorAgents.get(c) > 1) {
@@ -315,7 +382,7 @@ public class AIClient {
 		return goalMap.get(agent.getColor());
 	}
 
-	public List<Goal> getGoalList() {
+	public ArrayList<Goal> getGoalList() {
 		return goalList;
 	}
 
@@ -326,7 +393,7 @@ public class AIClient {
 	public boolean[][] getTempWalls() {
 		return tempWalls;
 	}
-	
+
 	public void resetTempWalls() {
 		tempWalls = new boolean[MAX_ROW][MAX_COL];
 	}
@@ -341,6 +408,10 @@ public class AIClient {
 
 	public Map<Goal, Integer[][]> getDijkstraMap() {
 		return this.dijkstraMap;
+	}
+	
+	public Map<Character, ArrayList<Goal>> getGoalListMap() {
+		return goalListMap;
 	}
 	
 	public LinkedList<Node> search(Strategy strategy, Node initialState) throws IOException {
@@ -394,7 +465,7 @@ public class AIClient {
 	
 	public static void main(String[] args) throws Exception {
 		BufferedReader serverMessages = new BufferedReader(new InputStreamReader(System.in));
-
+		
 		// Read level and create the initial state of the problem
 		client = new AIClient(serverMessages);
 		originalSolutions = new LinkedList[agentCounter];
@@ -409,11 +480,19 @@ public class AIClient {
 		
 		//Find solutions
 		for (Agent a : initialStates.keySet()) {
+			System.err.println("Find initial solution for agent " + a);
+			
 			Node initialState = initialStates.get(a);
 			
 			LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
 			Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
+			
+			// Get most prioritized goal
+			Goal goal = client.getPrioritizedGoal(box);
+			
+			box.inWorkingProcess = true;
 			initialState.goToBox = box;
+			initialState.goToGoal = goal;
 			initialState.goTo = true;
 			
 			Strategy strategy = getStrategy("astar", initialState);
@@ -422,7 +501,7 @@ public class AIClient {
 			
 			if (solution != null) {
 				solutions[a.getID()] = solution;
-				originalSolutions[a.getID()] = (LinkedList<Node>) solution.clone();
+				originalSolutions[a.getID()] = new LinkedList<Node>(solution);
 				updateRequirements(solution, a.getID());
 				System.err.println(solution);
 //				allSolutions[a.getID()] = new LinkedList<LinkedList<Node>>();
@@ -472,6 +551,9 @@ public class AIClient {
 						// Otherwise, if you are helping another and your goal is done (the goal of helping the other agent)
 					    // Release yourself
 //						} else if (agentIDs[a].isHelping != null) {
+//							if (agentIDs[a].isHelping.getsHelp == agentIDs[a]) {
+//								agentIDs[a].isHelping.getsHelp = null;
+//							}
 //							agentIDs[a].isHelping = null;
 //							agentIDs[a].getHelp = true;
 						}
@@ -482,47 +564,73 @@ public class AIClient {
 							newInitialState.boxPosition = null;
 							newInitialState.requestedPositions = null;
 							newInitialState.agentGoal = null;
+							newInitialState.ignore = true;
+							newInitialState.updateBoxes();
 							
 							if (newInitialState.goToBox != null) {
 								newInitialState.goTo = !newInitialState.goTo;
 							}
 							
 							if (newInitialState.goTo || newInitialState.goToBox == null) {
+								if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
 								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
+								System.err.println("tralalalalalalalalalalalalalallalalalalala");
+								System.err.println(aBoxes.isEmpty());
 								Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
+								box.inWorkingProcess = true;
+								
 								newInitialState.goToBox = box;
 								newInitialState.goTo = true;
+								
+							} else if (!newInitialState.goTo && newInitialState.goToBox != null) {
+								// Get most prioritized goal
+								Goal goal = client.getPrioritizedGoal(newInitialState.goToBox);
+								newInitialState.goToGoal = goal;
 							}
-														
+							
 							if(!newInitialState.isGoalState()) {
 
 								//Create solution to solve own problem
-								newInitialState.ignore = true;
-	
 								solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
-								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
+								currentStates[a] = newInitialState;
+								System.err.println("NEW SOLUTION");
+								System.err.println(solutions[a]);
+//								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 								updateRequirements(solutions[a], a);
 //								System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
-//								System.err.println(a+"'S OWN NEW SOLUTION \n");	
+//								System.err.println(a+"'S OWN NEW SOLUTION \n");
+								if (solutions[a] == null && newInitialState.goToBox != null) newInitialState.goToBox.inWorkingProcess = false;
 							} else {
 								newInitialState.goTo = !newInitialState.goTo;
 								
 								if (newInitialState.goTo) {
+									if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
 									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
 									Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
+									box.inWorkingProcess = true;
+									
 									newInitialState.goToBox = box;
 									newInitialState.goTo = true;
+									
+								} else if (!newInitialState.goTo && newInitialState.goToBox != null) {
+									// Get most prioritized goal
+									Goal goal = client.getPrioritizedGoal(newInitialState.goToBox);
+									newInitialState.goToGoal = goal;
 								}
 								
 								if(!newInitialState.isGoalState()) {
+									
 									//Create solution to solve own problem
-									newInitialState.ignore = true;
-	
 									solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
-									originalSolutions[a] = new LinkedList<Node>(solutions[a]);
+									currentStates[a] = newInitialState;
+									System.err.println("NEW SOLUTION");
+									System.err.println(solutions[a]);
+									originalSolutions[a] = solutions[a] != null ? new LinkedList<Node>(solutions[a]) : null;
 									updateRequirements(solutions[a], a);
 //									System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
-//									System.err.println(a+"'S OWN NEW SOLUTION \n");	
+//									System.err.println(a+"'S OWN NEW SOLUTION \n");
+									
+									if (solutions[a] == null && newInitialState.goToBox != null) newInitialState.goToBox.inWorkingProcess = false;
 								}
 							}
 						}
@@ -538,7 +646,7 @@ public class AIClient {
 						updateRequirements(solutions[a], a);
 					}
 					//Next helper
-
+					
 					System.err.println(Arrays.toString(actions));
 					
 					if((solutions[a] != null && !solutions[a].isEmpty())) {
@@ -549,6 +657,8 @@ public class AIClient {
 						}
 					}
 				}
+				System.err.println("THIS IS THE CURRENT STATE LALSLDASDLLASDLASLDLASLDALSDLASLDLASD");
+				System.err.println(currentStates[a]);
 				reachedAgent++;
 			}
 			if(stop) {
@@ -564,7 +674,7 @@ public class AIClient {
 				} else {
 					System.err.println("DEADLOCK: ");
 					//Replan
-					resetAgents();
+					//resetAgents();
 //					startOver(strategies, agentOrder.get(0));
 					execute = false;
 //					break;
@@ -572,7 +682,32 @@ public class AIClient {
 			}
 			
 			if(execute){
-
+				System.err.println("EXECUTE");
+				
+				for (int row = 0; row < MAX_ROW; row++) {
+					for (int col = 0; col < MAX_COL; col++) {
+						if (state.agents[row][col] != null) {
+							System.err.print(state.agents[row][col]);
+						} else {
+							System.err.print(' ');	
+						}
+					}
+					System.err.println("");
+				}
+				
+				for (int row = 0; row < MAX_ROW; row++) {
+					for (int col = 0; col < MAX_COL; col++) {
+						if (state.boxes[row][col] != null) {
+							System.err.print(state.boxes[row][col]);
+						} else {
+							System.err.print(' ');	
+						}
+					}
+					System.err.println("");
+				}
+				
+				System.err.println("EXECUTE2");
+				TimeUnit.MILLISECONDS.sleep(250);
 				// Add state to the combined solution, since the iteration is done
 				combinedSolution.add(state);				
 				
@@ -580,18 +715,26 @@ public class AIClient {
 				// If so, release any helpers locked to this agent
 				for(Agent a : agentIDs) {
 					if(currentStates[a.getID()].isRealGoalState()) {
+						
+						boolean goalButHelping = false;
+						for (Agent b : agentIDs) {
+							if (a != b && b.helper == a && a.getsHelp != b) {
+								goalButHelping = true;
+							}
+						}
+						
 						System.err.println(currentStates[a.getID()]+"is a goal state");
-						if(a.getsHelp != null ) { //&& a.getsHelp != a.isHelping) {
+						if(a.getsHelp != null && !goalButHelping && a.isHelping == null) { //&& a.getsHelp != a.isHelping) {
 							System.err.println(a+" done reset");
 							a.getsHelp.getHelp = true;
 							a.getsHelp.isHelping = null;
 							a.getsHelp = null;
 //							stop = true;
 						}
-						System.err.println(a+" is done");
+						System.err.println(a + " is done");
 					}
 				}
-					
+				
 				//Create action string
 				String act;
 				act = "[";
@@ -681,11 +824,13 @@ public class AIClient {
 //		System.err.println("REQUESTS: "+Arrays.deepToString(requests));
 //		System.err.println("ACTIONS: "+Arrays.toString(actions));
 //		System.err.println("helper != inNeed: "+(helper != inNeed));
-		System.err.println(a1+": helper: "+(helper));
-		System.err.println("inNeed.isHelping: "+(inNeed.isHelping));
+		System.err.println("Agent " + inNeed + " checks if he needs help");
+		System.err.println("Helper: " + helper);
+		System.err.println("inNeed.isHelping: " + inNeed.isHelping);
 		if(helper != null) {
-			System.err.println("helper.getsHelp: "+helper.getsHelp);
-			System.err.println("helper.isHelping: "+helper.isHelping);
+			System.err.println("helper.getsHelp: " + helper.getsHelp);
+			System.err.println("helper.isHelping: " + helper.isHelping);
+			System.err.println(currentStates[helper.getID()]);
 		}
 		
 		// IF helper is not null
@@ -728,7 +873,7 @@ public class AIClient {
 			// If helper is already helping current agent
 		    // AND helper cannot get help
 			// CONCLUSION they are helping each other
-			} else if (helper.getsHelp == inNeed && !helper.getHelp) {//Mutual help
+			} else if (helper.getsHelp == inNeed) {//Mutual help  && !helper.getHelp
 				helper.isHelping = inNeed;
 				inNeed.getsHelp = helper;
 				agentOrder.remove(helper);
@@ -799,9 +944,13 @@ public class AIClient {
 		newInitialState.ignore = false;
 		newInitialState.help = inNeed;
 		newInitialState.requestedPositions = positions;
+		if (newInitialState.goToBox != null) newInitialState.goToBox.inWorkingProcess = false;
 		newInitialState.goToBox = null;
+		newInitialState.goToGoal = null;
 		LinkedList<Node> sol = createSolution(getStrategy("bfs", newInitialState), client, newInitialState);
-
+		System.err.println("NEW PLAN!!!!!!");
+		System.err.println(sol);
+		
 		if(sol == null) {
 			Node curState = null;
 			System.err.println("REVERSE AND PLAN");
@@ -824,48 +973,52 @@ public class AIClient {
 		if(sol == null) {
 			System.err.println("REPLAN MUTUAL HELP");
 			positions = new LinkedList<>();
+			
+//			if (solutions[inNeed.getID()].get(0) != null) positions.add(solutions[inNeed.getID()].get(0).getRequired());
+//			if (solutions[inNeed.getID()].get(1) != null) positions.add(solutions[inNeed.getID()].get(1).getRequired());
 			for(int i = 0; i < solutions[inNeed.getID()].size(); i++) {
 				Node n = solutions[inNeed.getID()].get(i);
 				System.err.println(solutions[inNeed.getID()]);
-				if(oneway(n.getRequired())) {
-					if (!positions.contains(n.getRequired())) positions.add(n.getRequired());
-					
-//					Pos p = new Pos(n.agentRow, n.agentCol);
-//					if (!positions.contains(p)) positions.add(p);
-				} else {
-					break;
-				}
+				System.err.println(n.getRequired());
+				if (!positions.contains(n.getRequired())) positions.add(n.getRequired());
 			}
 			System.err.println(helper+" FIRST PART OF AVOIDLIST: "+positions);
-			Pos pOld = null;
-			if(positions.size() > 1) {
-				pOld = positions.get(1);
-			}
-			Pos p = positions.getFirst();
 			
-			while(true) {
+//			Pos pOld = null;
+//			if(positions.size() > 1)
+//				pOld = positions.get(1);
+//			else {
+//				pOld = requests[inNeed.getID()][0];
+//				System.err.println("P OLD: " + pOld);
+//			}
+			
+			Pos p = null;
+			if(!positions.isEmpty())
+				p = positions.getFirst();
+			
+			while(true && p != null) {
 				int r = p.row;
 				int c = p.col;
-				System.err.println(p+", "+pOld);
-				if (r-1>0 && !walls[r-1][c] && !(pOld.row == r-1 && pOld.col == c)) {
-					pOld = new Pos(r,c);
+				
+				if (r-1>0 && !walls[r-1][c] && !positions.contains(new Pos(r-1, c))) {
+					//pOld = new Pos(r,c);
 					p = new Pos(r-1, c);
 				}
-				else if (r+1<getMaxRow() && !walls[r+1][c] && !(pOld.row == r+1 && pOld.col == c)) {
-					pOld = new Pos(r,c);
+				else if (r+1<getMaxRow() && !walls[r+1][c] && !positions.contains(new Pos(r+1, c))) {
+					//pOld = new Pos(r,c);
 					p = new Pos(r+1, c);
 				}
-				else if (c-1>0 && !walls[r][c-1] && !(pOld.row == r && pOld.col == c-1)) {
-					pOld = new Pos(r,c);
+				else if (c-1>0 && !walls[r][c-1] && !positions.contains(new Pos(r, c-1))) {
+					//pOld = new Pos(r,c);
 					p = new Pos(r, c-1);
 				}
-				else if (c+1<getMaxCol() && !walls[r][c+1] && !(pOld.row == r && pOld.col == c+1)) {
-					pOld = new Pos(r,c);
+				else if (c+1<getMaxCol() && !walls[r][c+1] && !positions.contains(new Pos(r, c+1))) {
+					//pOld = new Pos(r,c);
 					p = new Pos(r, c+1);
 				} else {
-					pOld = new Pos(r,c);
+					//pOld = new Pos(r,c);
 				}
-				if (!p.equals(pOld) && oneway(p)) {
+				if (!positions.contains(p) && oneway(p)) {
 					positions.add(p);
 				} else {
 					break;
@@ -882,31 +1035,79 @@ public class AIClient {
 			System.err.println("InNeed: " + inNeed);
 			System.err.println("InNeed.getsHelp: " + inNeed.getsHelp);
 			System.err.println("InNeed.isHelping: " + inNeed.isHelping);
-			
+			try {
+				TimeUnit.SECONDS.sleep(5);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
 			newInitialState.ignore = true;
 			newInitialState.requestedPositions = positions;
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
+			
+			System.err.println("NEW PLAN!!!!!!");
+			System.err.println(sol);
 		}
 		
 		
 		solutions[helper.getID()] = sol;
+		currentStates[helper.getID()] = newInitialState;
 		updateRequirements(solutions[helper.getID()], helper.getID());
 		System.err.println(helper+"'S HELP SOL2 \n"+solutions[helper.getID()]+" from "+newInitialState);
 	}
 
-	private static void resetAgents() {
+	private static void resetAgent(int i) throws IOException {
 		System.err.println("--------- RESET SOLUTIONS ----------- ");
 		
-		for (int i = 0; i < agentIDs.length; i++) {
-			Agent a = agentIDs[i];
-			
-			a.getHelp = true;
-			a.getsHelp = null;
-			a.isHelping = null;
-			
-			solutions[a.getID()] = null;
-			actions[a.getID()] = null;
-			
+		Agent a = agentIDs[i];
+		
+		a.getHelp = true;
+		a.getsHelp = null;
+		a.isHelping = null;
+		
+		solutions[a.getID()] = null;
+		actions[a.getID()] = null;
+		
+		String c = a.getColor();
+		
+		Pos agentPos = null;
+		for (int row = 0; row < MAX_ROW; row++) {
+			for (int col = 0; col < MAX_COL; col++) {
+				if (combinedSolution.getLast().agents[row][col] == a) {
+					agentPos = new Pos(row,col);
+				}
+			}
+		}
+		System.err.println(agentPos);
+		Node initialState = new Node(null, client, a, agentPos, null);
+		
+		initialState.goals = currentStates[i].goals;
+		initialState.updateBoxes();
+		
+		LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
+		Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
+		
+		// Get most prioritized goal
+		Goal goal = client.getPrioritizedGoal(box);
+		
+		box.inWorkingProcess = true;
+		initialState.goToBox = box;
+		initialState.goToGoal = goal;
+		initialState.goTo = true;
+		
+		Strategy strategy = getStrategy("astar", initialState);
+		LinkedList<Node> solution = createSolution(strategy, client, initialState);
+		strategies[a.getID()] = strategy;
+		
+		if (solution != null) {
+			solutions[a.getID()] = solution;
+			currentStates[a.getID()] = initialState;
+			originalSolutions[a.getID()] = new LinkedList<Node>(solution);
+			updateRequirements(solution, a.getID());
+			System.err.println(solution);
+		} else {
+			System.err.println("COULD NOT FIND SOLUTION FOR " + a);
 		}
 	}
 	
@@ -983,7 +1184,29 @@ public class AIClient {
 //				System.err.println("Prev: "+(combinedSolution.getLast()));
 				System.err.println("NO OP 1: "+node.action.toString());
 				
-				return "NoOp";	
+				return "NoOp";
+			}
+			//(node.action.actionType == Command.Type.Push || node.action.actionType == Command.Type.Pull) &&
+			System.err.println("Agent " + a + " has goToBox: " + currentStates[a].goToBox + ":" + (currentStates[a].goToBox != null ? currentStates[a].goToBox.pos : ""));
+			System.err.println("Agent " + a + " has goToGoal: " + currentStates[a].goToGoal + ":" + (currentStates[a].goToGoal != null ? currentStates[a].goToGoal.getPos() : ""));
+			if (currentStates[a].goToBox != null) {
+				for (int row = 1; row < MAX_ROW - 1; row++) {
+					for (int col = 1; col < MAX_COL - 1; col++) {
+						if (currentStates[a].boxes[row][col] == currentStates[a].goToBox && state.boxes[row][col] != currentStates[a].goToBox) {
+							System.err.println(state);
+							System.err.println(currentStates[a]);
+							System.err.println("Agent " + a + " cannot move the box - the box has been moved");
+							System.err.println("ROW: " + row + ", COL: " + col + " ???: " + currentStates[a].boxes[row][col]);
+							System.err.println("BOX TO MOVE " + currentStates[a].goToBox + ":" +currentStates[a].goToBox.pos);
+							currentStates[a] = currentStates[a].copy();
+							resetAgent(a);
+							currentStates[a].updateBoxes();
+							//System.err.println("NoOP - Box has been moved by another agent");
+							//System.exit(0);
+							return "NoOp";
+						}
+					}
+				}	
 			}
 			
 			//Conflict with higher-ranked agents
@@ -1053,6 +1276,7 @@ public class AIClient {
 			throws IOException {
 		LinkedList<Node> solution;
 		try {
+			System.err.println("Create new solution");
 			solution = client.search(strategy, initialState);
 		} catch (OutOfMemoryError ex) {
 			System.err.println("Maximum memory usage exceeded.");
@@ -1079,6 +1303,31 @@ public class AIClient {
 
 	public MultiNode getCurrentSubState() {
 		return state;
+	}
+	
+	public Node getCurrentState(int i) {
+		return currentStates[i];
+	}
+	
+	private Goal getPrioritizedGoal(Box box) {
+		Goal goal = null;
+		if (box != null) {
+			System.err.println("CHECK BOXES MM");
+			System.err.println(state);
+			for (int i = 0; i < client.getGoalList().size(); i++) {
+				goal = client.getGoalList().get(i);
+				
+				if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+				
+					Box maybeBox = state.boxes[goal.getPos().row][goal.getPos().col];
+					
+					if (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel()) {
+						return goal;
+					}
+				}
+			}
+		}
+		return null;
 	}
 }
 

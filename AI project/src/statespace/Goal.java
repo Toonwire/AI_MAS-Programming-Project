@@ -1,11 +1,11 @@
 package statespace;
 
-import java.awt.Point;
-
 public class Goal extends Element {
 
 	private Pos pos;
 		
+	public boolean inWorkingProcess = false;
+	
 	public Goal(char label, Pos pos) {
 		super(label);
 		this.pos = pos;
