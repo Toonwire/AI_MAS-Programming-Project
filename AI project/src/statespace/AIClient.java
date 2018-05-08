@@ -316,16 +316,20 @@ public class AIClient {
 					if(colorAgents.get(c) > 1) {
 						Goal[][] reachableGoals = new Goal[MAX_ROW][MAX_COL];
 						LinkedList<Goal> reachableGoalsList = new LinkedList<>();
-						for(Goal g : colorGoals.get(c)) {
-							Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
-							int row2 = g.getPos().row;
-							int col2 = g.getPos().col;
-							gsTemp[row2][col2] = g;
-							initialState.goals = gsTemp;
-							LinkedList<Node> sol = search(getStrategy("astar", initialState), initialState);
-							if(sol != null && !sol.isEmpty()) {
-								reachableGoals[row2][col2] = g; //add to final goal array
-								reachableGoalsList.add(g);
+						if (colorGoals.get(c) != null) { // ACCOUNT FOR AGENTS WITHOUT A GOAL
+							for(Goal g : colorGoals.get(c)) {
+								if (g != null) {
+									Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
+									int row2 = g.getPos().row;
+									int col2 = g.getPos().col;
+									gsTemp[row2][col2] = g;
+									initialState.goals = gsTemp;
+									LinkedList<Node> sol = search(getStrategy("astar", initialState), initialState);
+									if(sol != null && !sol.isEmpty()) {
+										reachableGoals[row2][col2] = g; //add to final goal array
+										reachableGoalsList.add(g);
+									}
+								}
 							}
 						}
 						a.reachableGoals = reachableGoalsList;
@@ -424,7 +428,7 @@ public class AIClient {
 		int iterations = 0;
 		while (true) {
 			if (iterations == 1000) {
-				System.err.println(strategy.searchStatus());
+//				System.err.println(strategy.searchStatus());
 				iterations = 0;
 			}
 			
@@ -484,7 +488,7 @@ public class AIClient {
 			
 			Node initialState = initialStates.get(a);
 			
-			LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
+			LinkedList<Box> aBoxes = a.getBoxesNotInGoal(a);
 			Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 			
 			// Get most prioritized goal
@@ -502,6 +506,7 @@ public class AIClient {
 			if (solution != null) {
 				solutions[a.getID()] = solution;
 				originalSolutions[a.getID()] = new LinkedList<Node>(solution);
+
 				updateRequirements(solution, a.getID());
 				System.err.println(solution);
 //				allSolutions[a.getID()] = new LinkedList<LinkedList<Node>>();
@@ -572,10 +577,12 @@ public class AIClient {
 							}
 							
 							if (newInitialState.goTo || newInitialState.goToBox == null) {
+
 								if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
-								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
+								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
 								System.err.println("tralalalalalalalalalalalalalallalalalalala");
 								System.err.println(aBoxes.isEmpty());
+
 								Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 								box.inWorkingProcess = true;
 								
@@ -592,9 +599,11 @@ public class AIClient {
 
 								//Create solution to solve own problem
 								solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
+
 								currentStates[a] = newInitialState;
 								System.err.println("NEW SOLUTION");
 								System.err.println(solutions[a]);
+
 //								originalSolutions[a] = new LinkedList<Node>(solutions[a]);
 								updateRequirements(solutions[a], a);
 //								System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
@@ -604,8 +613,10 @@ public class AIClient {
 								newInitialState.goTo = !newInitialState.goTo;
 								
 								if (newInitialState.goTo) {
+
 									if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
-									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
+									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
+
 									Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 									box.inWorkingProcess = true;
 									
@@ -622,10 +633,12 @@ public class AIClient {
 									
 									//Create solution to solve own problem
 									solutions[a] = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
+
 									currentStates[a] = newInitialState;
 									System.err.println("NEW SOLUTION");
 									System.err.println(solutions[a]);
 									originalSolutions[a] = solutions[a] != null ? new LinkedList<Node>(solutions[a]) : null;
+
 									updateRequirements(solutions[a], a);
 //									System.err.println(a+"'S OWN NEW SOLUTION \n"+solutions[a]+" from "+newInitialState);
 //									System.err.println(a+"'S OWN NEW SOLUTION \n");
@@ -677,7 +690,7 @@ public class AIClient {
 					//resetAgents();
 //					startOver(strategies, agentOrder.get(0));
 					execute = false;
-//					break;
+					break;
 				}
 			}
 			
@@ -724,7 +737,9 @@ public class AIClient {
 						}
 						
 						System.err.println(currentStates[a.getID()]+"is a goal state");
+
 						if(a.getsHelp != null && !goalButHelping && a.isHelping == null) { //&& a.getsHelp != a.isHelping) {
+
 							System.err.println(a+" done reset");
 							a.getsHelp.getHelp = true;
 							a.getsHelp.isHelping = null;
@@ -940,6 +955,7 @@ public class AIClient {
 		helper.isHelping = inNeed;
 		inNeed.getsHelp = helper;
 		
+		if (currentStates[helper.getID()] == null) System.err.println("HELPER HAS NO STATE");
 		Node newInitialState = currentStates[helper.getID()].copy();
 		newInitialState.ignore = false;
 		newInitialState.help = inNeed;
@@ -1085,7 +1101,7 @@ public class AIClient {
 		initialState.goals = currentStates[i].goals;
 		initialState.updateBoxes();
 		
-		LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
+		LinkedList<Box> aBoxes = a.getBoxesNotInGoal(a);
 		Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 		
 		// Get most prioritized goal
@@ -1179,9 +1195,6 @@ public class AIClient {
 			if ((!state.isEmpty(p) && state.agents[p.row][p.col] != node.getAgent()) // conflict with other agents in current state
 					|| !combinedSolution.getLast().isEmpty(p)) { // conflict with beginning of state
 
-//				System.err.println("WANT: "+p);
-//				System.err.println("Same: "+state);
-//				System.err.println("Prev: "+(combinedSolution.getLast()));
 				System.err.println("NO OP 1: "+node.action.toString());
 				
 				return "NoOp";
@@ -1209,15 +1222,7 @@ public class AIClient {
 				}	
 			}
 			
-			//Conflict with higher-ranked agents
-//			for(int j = 0; j < i; j++) { //Higher-order agents
-//				int a2 = agentOrder.get(j).getID();
-//				Pos pos = requests[a2][1];
-//				if (pos != null && node != null && node.getRequired().equals(pos)) {
-//					System.err.println("NO OP 2: "+node.action.toString());
-//					return "NoOp";
-//				}
-//			}
+			
 			
 			//Can execute
 			state = new MultiNode(state, a, node.action);
@@ -1282,6 +1287,7 @@ public class AIClient {
 			System.err.println("Maximum memory usage exceeded.");
 			solution = null;
 		}
+		
 		return solution;
 	}
 
