@@ -588,12 +588,12 @@ public class AIClient {
 						
 						// make sure the agent is nobody's helper before resetting own help variabels
 						boolean goalButHelping = false;
-						for (Agent b : agentIDs) {
-							if (a != b && b.helper == a) {
-								goalButHelping = true;
-							}
-						}
-						if(a.getsHelp != null && !goalButHelping) { 
+//						for (Agent b : agentIDs) {
+//							if (a != b && b.helper == a && a.getsHelp != b) {
+//								goalButHelping = true;
+//							}
+//						}
+						if(a.getsHelp != null && !goalButHelping && a.isHelping == null) { 
 							System.err.println(a+" done reset");
 							a.getsHelp.getHelp = true;
 							a.getsHelp.isHelping = null;
