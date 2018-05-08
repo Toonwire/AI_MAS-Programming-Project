@@ -585,7 +585,15 @@ public class AIClient {
 				for(Agent a : agentIDs) {
 					if(currentStates[a.getID()].isRealGoalState()) {
 						System.err.println(currentStates[a.getID()]+"is a goal state");
-						if(a.getsHelp != null ) { //&& a.getsHelp != a.isHelping) {
+						
+						// make sure the agent is nobody's helper before resetting own help variabels
+						boolean goalButHelping = false;
+						for (Agent b : agentIDs) {
+							if (a != b && b.helper == a) {
+								goalButHelping = true;
+							}
+						}
+						if(a.getsHelp != null && !goalButHelping) { 
 							System.err.println(a+" done reset");
 							a.getsHelp.getHelp = true;
 							a.getsHelp.isHelping = null;
