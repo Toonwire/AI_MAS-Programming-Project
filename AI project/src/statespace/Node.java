@@ -598,7 +598,7 @@ public class Node {
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			for (int col = 0; col < client.getMaxCol(); col++) {
-				Box b = client.getCurrentState().boxes[row][col];
+				Box b = client.getCurrentSubState().boxes[row][col];
 				if(b != null && agent.getReachableBoxes().contains(b)) {
 					boxes[row][col] = b;
 				}
