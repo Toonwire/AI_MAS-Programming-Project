@@ -69,7 +69,7 @@ public class Agent {
 		this.helper = helper;
 	}
 	
-	public LinkedList<Box> getBoxesNotInGoal(Agent a) {
+	public LinkedList<Box> getBoxesNotInGoal() {
 		LinkedList<Box> list = new LinkedList<Box>();
 		LinkedList<Integer> listCount = new LinkedList<Integer>();
 		
@@ -78,7 +78,7 @@ public class Agent {
 				 Box b = client.getCurrentSubState().boxes[row][col];
 				 Goal g = client.getGoals()[row][col];
 				 
-				 if (b != null && !b.inWorkingProcess && a.getReachableBoxes().contains(b)) {
+				 if (b != null && !b.inWorkingProcess && reachableBoxes.contains(b)) {
 
 					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {
 				

@@ -105,7 +105,6 @@ public class AIClient {
 		// Read lines specifying level layout
 		for (int row = 0; row < lines.size(); row++) {
 			line = lines.get(row);
-
 			for (int col = 0; col < line.length(); col++) {
 				char chr = line.charAt(col);
 
@@ -189,27 +188,43 @@ public class AIClient {
 				int countFields = 0;
 				LinkedList<Pos> queue = new LinkedList<>();
 				queue.add(goal.getPos());
-				
+				ArrayList<Pos> checked = new ArrayList<>();
 				while (true) {
 					
 					if (queue.isEmpty()) break;
 					Pos pos = queue.poll();
 	
 					if (0 <= pos.row - 1 && !tempMap[pos.row - 1][pos.col]) {
-						queue.add(new Pos(pos.row - 1, pos.col));
-						countFields++;
+						Pos p = new Pos(pos.row - 1, pos.col);
+						if (!checked.contains(p)) {
+							queue.add(p);
+							checked.add(p);
+							countFields++;
+						}
 					}
 					if (MAX_ROW > pos.row + 1 && !tempMap[pos.row + 1][pos.col]) {
-						queue.add(new Pos(pos.row + 1, pos.col));
-						countFields++;
+						Pos p = new Pos(pos.row + 1, pos.col);
+						if (!checked.contains(p)) {
+							queue.add(p);
+							checked.add(p);
+							countFields++;
+						}
 					}
 					if (0 <= pos.col - 1 && !tempMap[pos.row][pos.col - 1]) {
-						queue.add(new Pos(pos.row, pos.col - 1));
-						countFields++;
+						Pos p = new Pos(pos.row, pos.col - 1);
+						if (!checked.contains(p)) {
+							queue.add(p);
+							checked.add(p);
+							countFields++;
+						}
 					}
 					if (MAX_COL > pos.col + 1 && !tempMap[pos.row][pos.col + 1]) {
-						queue.add(new Pos(pos.row, pos.col + 1));
-						countFields++;
+						Pos p = new Pos(pos.row, pos.col + 1);
+						if (!checked.contains(p)) {
+							queue.add(p);
+							checked.add(p);
+							countFields++;
+						}
 					}
 					
 					tempMap[pos.row][pos.col] = true;
@@ -234,6 +249,9 @@ public class AIClient {
 				}
 			}
 		}
+		System.err.println(goalListCount);
+		System.err.println(goalList);
+//		System.exit(0);
 		
 		for (Map.Entry<Character, ArrayList<Goal>> entry : goalListMap.entrySet()) {
 			ArrayList<Goal> goals = entry.getValue();
@@ -490,7 +508,7 @@ public class AIClient {
 			
 			Node initialState = initialStates.get(a);
 			
-			LinkedList<Box> aBoxes = a.getBoxesNotInGoal(a);
+			LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
 			Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 			
 			initialState.goToBox = box;
@@ -583,7 +601,7 @@ public class AIClient {
 
 								if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
 								if (newInitialState.goToGoal != null ) newInitialState.goToGoal.inWorkingProcess = false;
-								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
+								LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
 								System.err.println("tralalalalalalalalalalalalalallalalalalala");
 								
 								Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
@@ -631,7 +649,7 @@ public class AIClient {
 
 									if (newInitialState.goToBox != null ) newInitialState.goToBox.inWorkingProcess = false;
 									if (newInitialState.goToGoal != null ) newInitialState.goToGoal.inWorkingProcess = false;
-									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal(agentIDs[a]);
+									LinkedList<Box> aBoxes = agentIDs[a].getBoxesNotInGoal();
 
 									Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
 									
@@ -731,31 +749,31 @@ public class AIClient {
 			if(execute){
 				deadlockLimit = 0;
 				System.err.println("EXECUTE");
-				
-				for (int row = 0; row < MAX_ROW; row++) {
-					for (int col = 0; col < MAX_COL; col++) {
-						if (state.agents[row][col] != null) {
-							System.err.print(state.agents[row][col]);
-						} else {
-							System.err.print(' ');	
-						}
-					}
-					System.err.println("");
-				}
-				
-				for (int row = 0; row < MAX_ROW; row++) {
-					for (int col = 0; col < MAX_COL; col++) {
-						if (state.boxes[row][col] != null) {
-							System.err.print(state.boxes[row][col]);
-						} else {
-							System.err.print(' ');	
-						}
-					}
-					System.err.println("");
-				}
+//				
+//				for (int row = 0; row < MAX_ROW; row++) {
+//					for (int col = 0; col < MAX_COL; col++) {
+//						if (state.agents[row][col] != null) {
+//							System.err.print(state.agents[row][col]);
+//						} else {
+//							System.err.print(' ');	
+//						}
+//					}
+//					System.err.println("");
+//				}
+//				
+//				for (int row = 0; row < MAX_ROW; row++) {
+//					for (int col = 0; col < MAX_COL; col++) {
+//						if (state.boxes[row][col] != null) {
+//							System.err.print(state.boxes[row][col]);
+//						} else {
+//							System.err.print(' ');	
+//						}
+//					}
+//					System.err.println("");
+//				}
 				
 				System.err.println("EXECUTE2");
-				TimeUnit.MILLISECONDS.sleep(250);
+//				TimeUnit.MILLISECONDS.sleep(250);
 				// Add state to the combined solution, since the iteration is done
 				combinedSolution.add(state);				
 				
@@ -836,6 +854,32 @@ public class AIClient {
 //		}
 		System.err.println("Final solution is of length: "+actionList.size()+" "+stopped);
 //		System.err.println(actionList);
+	}
+
+	//////TEST
+	private static Box getBox(Agent a, Goal g) {
+		for(Box b : a.getBoxesNotInGoal()) {
+			if (Character.toLowerCase(b.getLabel()) == g.getLabel() && !g.inWorkingProcess) {
+				return b;
+			}
+		}
+		return null;
+	}
+
+
+	//////TEST
+	private static Goal getGoToGoal(AIClient client) {
+		for(Goal g : client.goalList) {
+			int r = g.getPos().row;
+			int c = g.getPos().col;
+			if(client.getCurrentSubState().boxes[r][c] != null) {
+				Box b = client.getCurrentSubState().boxes[r][c];
+				if ((b == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && !g.inWorkingProcess) {
+					return g;
+				}
+			}
+		}
+		return null;
 	}
 
 
@@ -1254,8 +1298,9 @@ public class AIClient {
 		initialState.goals = currentStates[i].goals;
 		initialState.updateBoxes();
 		
-		LinkedList<Box> aBoxes = a.getBoxesNotInGoal(a);
+		LinkedList<Box> aBoxes = a.getBoxesNotInGoal();
 		Box box = aBoxes.isEmpty() ? null : aBoxes.getFirst();
+		
 		System.err.println("After reset agent " + i + " box found is: " + box);
 		initialState.goToBox = box;
 		initialState.goTo = true;
