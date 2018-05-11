@@ -14,6 +14,8 @@ public class Agent {
 	public Agent getsHelp = null;
 	public LinkedList<Pos> avoidList;
 	public boolean getHelp = true;
+	public boolean helps = false;
+	public int waiting = 0;
 	
 	public AIClient client;
 	

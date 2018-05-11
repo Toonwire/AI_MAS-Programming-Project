@@ -4,6 +4,7 @@ public class Box extends Element {
 	
 	public String color;
 	public Pos pos; // Only for initial position!!!
+	public Goal goal;
 	
 	public boolean inWorkingProcess = false;
 	

@@ -140,8 +140,11 @@ public class Node {
 						//char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
 						//char b = Character.toLowerCase(goToBox.getLabel());
 						//return g == b;
-						
-						return goToGoal.getPos().row == row && goToGoal.getPos().col == col;
+						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col)
+						{
+							goToBox.goal = goToGoal;
+							return true;	
+						}
 					}
 				}
 			}
@@ -268,7 +271,7 @@ public class Node {
 		
 		boolean allowed = false;
 		for (Box box : agent.getReachableBoxes())
-			if (box.inWorkingProcess && box == boxes[row][col])
+			if (box.inWorkingProcess && box == boxes[row][col] && box != goToBox)
 				allowed = true;
 		
 		
@@ -390,17 +393,41 @@ public class Node {
 			}
 		}
 		
+		// Add penalty moving a box out of its goal 
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
 				
-				Box box = client.getCurrentSubState().boxes[row][col];
-				Goal goal = client.getGoals()[row][col];
+				Box box = boxes[row][col];
+				Goal goal = goals[row][col];
 				
-				if (box != null && goal != null && Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+				// If box is in its goal, subtract 5
+				if (box != null && box.goal != null && box.goal == goal) {
+					penalty -= 5;
+				
+				// If box is not in its goal, add 5
+				} else if (box != null) {
 					penalty += 5;
 				}
 			}
 		}
+		
+		int distanceForBox = 0;
+		int distanceForAgent = 0;
+		if (goToBox != null && goToGoal != null) {
+			for (int row = 1; row < client.getMaxRow() - 1; row++) {
+				for (int col = 1; col < client.getMaxCol() - 1; col++) {
+					if (boxes[row][col] == goToBox) {
+						distanceForBox = client.getDijkstraMap().get(goToGoal)[row][col];
+					}
+				}
+			}
+			distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
+			
+			if (distanceForAgent < distanceForBox) {
+				penalty += 5;
+			}
+		}
+		
 		// If the agent is doing his own shit
 		if (goToBox != null) {
 
@@ -409,6 +436,7 @@ public class Node {
 				for (int row = 1; row < client.getMaxRow() - 1; row++) {
 					for (int col = 1; col < client.getMaxCol() - 1; col++) {
 						if (boxes[row][col] == goToBox) {
+							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty));
 							return Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty;
 						}
 					}
@@ -419,6 +447,7 @@ public class Node {
 				for (int row = 1; row < client.getMaxRow() - 1; row++) {
 					for (int col = 1; col < client.getMaxCol() - 1; col++) {
 						if (boxes[row][col] == goToBox) {
+							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
 							return client.getDijkstraMap().get(goToGoal)[row][col] + penalty;
 						}
 					}
@@ -563,17 +592,20 @@ public class Node {
 	}
 	
 	public void updateBoxes() {
-		System.err.println("BOX BEF: "+this);
+		System.err.println("Boxes before update:");
+		System.err.println(this);
+		
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			for (int col = 0; col < client.getMaxCol(); col++) {
-				Box b = client.getCurrentSubState().boxes[row][col];
+				Box b = client.getCurrentState().boxes[row][col];
 				if(b != null && agent.getReachableBoxes().contains(b)) {
 					boxes[row][col] = b;
 				}
 			}	
 		}
-		System.err.println("BOX AFT: "+this);
+		
+		System.err.println("Boxes after update:");
+		System.err.println(this);
 	}
-
 }
