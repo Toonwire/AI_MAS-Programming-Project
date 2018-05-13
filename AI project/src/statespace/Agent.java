@@ -1,5 +1,6 @@
 package statespace;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import sampleclients.MultiCommand;
@@ -7,8 +8,8 @@ import sampleclients.MultiCommand;
 public class Agent {
 	char id;
 	String color;
-	LinkedList<Box> reachableBoxes;
-	LinkedList<Goal> reachableGoals;
+	ArrayList<Box> reachableBoxes;
+	ArrayList<Goal> reachableGoals;
 	public Agent helper;
 	public Agent isHelping = null;
 	public Agent getsHelp = null;
@@ -21,7 +22,7 @@ public class Agent {
 		this.id = id;
 		this.color = color;
 		this.client = client;
-		reachableBoxes = new LinkedList<>();
+		reachableBoxes = new ArrayList<>();
 		System.err.println("Found " + color + " agent " + id);
 	}
 
@@ -46,12 +47,12 @@ public class Agent {
 		return "" + id;
 	}
 
-	public LinkedList<Box> getReachableBoxes() {
+	public ArrayList<Box> getReachableBoxes() {
 		return reachableBoxes;
 	}
 
-	public void setReachableBoxes(LinkedList<Box> boxes) {
-		this.reachableBoxes = boxes;
+	public void setReachableBoxes(ArrayList<Box> reachableBoxesList) {
+		this.reachableBoxes = reachableBoxesList;
 	}
 
 	public LinkedList<Agent> getHelpers() {

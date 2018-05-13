@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -39,7 +40,9 @@ public class AIClient {
 	private static Map<Agent, Node> initialStates = new HashMap<>();
 
 	private Map<Character, ArrayList<Goal>> goalListMap = new HashMap<>();
-	private Map<Goal, Integer[][]> dijkstraMap = new HashMap<>();
+	private Map<Character, ArrayList<Box>> boxListMap = new HashMap<>();
+	private Map<Goal, Integer[][]> dijkstraGoalMap = new HashMap<>();
+	private Map<Box, Integer[][]> dijkstraBoxMap = new HashMap<>();
 	
 	private final static Set<String> COLORS = new HashSet<>(
 			Arrays.asList("blue", "red", "green", "cyan", "magenta", "orange", "pink", "yellow"));
@@ -54,7 +57,7 @@ public class AIClient {
 		Map<Character, String> chrColorMap = new HashMap<>();
 		Map<String, List<Character>> colorChrMap = new HashMap<>();
 		Map<String, Integer> colorAgents = new HashMap<>();
-		Map<String, LinkedList<Goal>> colorGoals = new HashMap<>();
+		Map<String, ArrayList<Goal>> colorGoals = new HashMap<>();
 		
 		String line, color;
 
@@ -131,9 +134,13 @@ public class AIClient {
 					if (c == null)
 						c = DEFAULT_COLOR;
 
-					Box box = new Box(chr,c);
+					Box box = new Box(chr,c, new Pos(row,col));
 					boxes[row][col] = box;
 					boxMap.get(c)[row][col] = box;
+					
+					if (!boxListMap.containsKey(chr)) boxListMap.put(chr, new ArrayList<Box>());
+					boxListMap.get(chr).add(box);
+					
 				} else if ('a' <= chr && chr <= 'z') { // Goal.
 					String c = chrColorMap.get(Character.toUpperCase(chr));
 					if (c == null)
@@ -147,7 +154,7 @@ public class AIClient {
 					goalList.add(goal);
 
 					if(colorGoals.get(c) == null) {
-						colorGoals.put(c, new LinkedList<Goal>());
+						colorGoals.put(c, new ArrayList<Goal>());
 					}
 					colorGoals.get(c).add(goal);
 					
@@ -166,41 +173,64 @@ public class AIClient {
 			}
 		}
 		
-
 		for (Map.Entry<Character, ArrayList<Goal>> entry : goalListMap.entrySet()) {
 			ArrayList<Goal> goals = entry.getValue();
-			
 			for (Goal goal : goals) {
-				
 				Integer[][] dijkstra = new Integer[MAX_ROW][MAX_COL];
 				
 				// Pair of currentPos, corresponding parentPos
-				LinkedList<Pair<Pos,Pos>> queue = new LinkedList<>();
-				
+				ArrayList<Pair<Pos,Pos>> queue = new ArrayList<>();
 				queue.add(new Pair<Pos, Pos>(goal.getPos(), null));
 				
-				while(true) {	
-					
-					if (queue.isEmpty()) break;
-					
-					Pair<Pos, Pos> pair = queue.poll();
+				while(!queue.isEmpty()) {
+					Pair<Pos, Pos> pair = queue.get(0);
+					queue.remove(0);
 					Pos pos = (Pos) pair.getLeft();
 					Pos parentPos = (Pos) pair.getRight();
 					
 					if (dijkstra[pos.row][pos.col] != null || walls[pos.row][pos.col]) continue;
-					
-					if (parentPos == null) {
+					if (parentPos == null) 
 						dijkstra[pos.row][pos.col] = 0;
-					} else {
+					else
 						dijkstra[pos.row][pos.col] = dijkstra[parentPos.row][parentPos.col] + 1;
-					}
 					
 					if (0 <= pos.row - 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row - 1, pos.col), pos));
 					if (MAX_ROW > pos.row + 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row + 1, pos.col), pos));
 					if (0 <= pos.col- 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row, pos.col - 1), pos));
 					if (MAX_COL > pos.col + 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row, pos.col + 1), pos));
 				}
-				dijkstraMap.put(goal, dijkstra);
+				dijkstraGoalMap.put(goal, dijkstra);
+			}
+		}
+		
+		
+		for (Map.Entry<Character, ArrayList<Box>> entry : boxListMap.entrySet()) {
+			ArrayList<Box> boxes = entry.getValue();
+			for (Box box : boxes) {
+				Integer[][] dijkstra = new Integer[MAX_ROW][MAX_COL];
+				
+				// Pair of currentPos, corresponding parentPos
+				ArrayList<Pair<Pos,Pos>> queue = new ArrayList<>();
+				queue.add(new Pair<Pos, Pos>(box.getPos(), null));
+				
+				while(!queue.isEmpty()) {
+					Pair<Pos, Pos> pair = queue.get(0);
+					queue.remove(0);
+					Pos pos = (Pos) pair.getLeft();
+					Pos parentPos = (Pos) pair.getRight();
+					
+					if (dijkstra[pos.row][pos.col] != null || walls[pos.row][pos.col]) continue;
+					if (parentPos == null) 
+						dijkstra[pos.row][pos.col] = 0;
+					else
+						dijkstra[pos.row][pos.col] = dijkstra[parentPos.row][parentPos.col] + 1;
+					
+					if (0 <= pos.row - 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row - 1, pos.col), pos));
+					if (MAX_ROW > pos.row + 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row + 1, pos.col), pos));
+					if (0 <= pos.col- 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row, pos.col - 1), pos));
+					if (MAX_COL > pos.col + 1) queue.add(new Pair<Pos, Pos>(new Pos(pos.row, pos.col + 1), pos));
+				}
+				dijkstraBoxMap.put(box, dijkstra);
 			}
 		}
 		
@@ -211,6 +241,8 @@ public class AIClient {
 		
 		//Create initial states
 		agentIDs = new Agent[getAgentNum()];
+		
+		long start = System.currentTimeMillis();
 		for (int row = 0; row < MAX_ROW; row++) {
 			for (int col = 0; col < MAX_COL; col++) {
 				Agent a = agents[row][col];
@@ -220,22 +252,30 @@ public class AIClient {
 					Node initialState = new Node(null, this, a, new Pos(row, col), null);
 					
 					//Give reachable boxes
-					LinkedList<Box> reachableBoxesList = new LinkedList<>();
+					ArrayList<Box> reachableBoxesList = new ArrayList<>();
 					Box[][] reachableBoxes = new Box[MAX_ROW][MAX_COL];
 					for (int row2 = 0; row2 < MAX_ROW; row2++) {
 						for (int col2 = 0; col2 < MAX_COL; col2++) {
 							Box[][] bsTemp = new Box[MAX_ROW][MAX_COL]; //array with single goal to test
 							Box b = boxes[row2][col2];
 							if(b != null && a.getColor().equals(b.getColor())) {
-								bsTemp[row2][col2] = b;
-								initialState.boxes = bsTemp;
-								initialState.boxPosition = new Pos(row2, col2);
-								LinkedList<Node> sol = search(getStrategy("bfs", initialState), initialState);
-								initialState.boxPosition = null;
-								if(sol != null && !sol.isEmpty()) {
-									reachableBoxes[row2][col2] = b; //add to final box array
+								if (dijkstraBoxMap.get(b)[row][col] == null) continue;
+								else {
+									reachableBoxes[row2][col2] = b;
 									reachableBoxesList.add(b);
 								}
+								
+//								bsTemp[row2][col2] = b;
+//								initialState.boxes = bsTemp;
+//								initialState.boxPosition = new Pos(row2, col2);
+//								long t1 = System.currentTimeMillis();
+//								LinkedList<Node> sol = search(getStrategy("bfs", initialState), initialState);
+//								System.err.println("Reachable: " + (System.currentTimeMillis()-t1));
+//								initialState.boxPosition = null;
+//								if(sol != null && !sol.isEmpty()) {
+//									reachableBoxes[row2][col2] = b; //add to final box array
+//									reachableBoxesList.add(b);
+//								}
 							}
 						}
 					}
@@ -243,25 +283,31 @@ public class AIClient {
 //					initialState.boxes = boxMap.get(c);
 					a.setReachableBoxes(reachableBoxesList);
 					
-					
-					
 					//If agents of same color, only solve for reachable goals 
 					if(colorAgents.get(c) > 1) {
 						Goal[][] reachableGoals = new Goal[MAX_ROW][MAX_COL];
-						LinkedList<Goal> reachableGoalsList = new LinkedList<>();
+						ArrayList<Goal> reachableGoalsList = new ArrayList<>();
 						if (colorGoals.get(c) != null) { // ACCOUNT FOR AGENTS WITHOUT A GOAL
 							for(Goal g : colorGoals.get(c)) {
 								if (g != null) {
-									Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
-									int row2 = g.getPos().row;
-									int col2 = g.getPos().col;
-									gsTemp[row2][col2] = g;
-									initialState.goals = gsTemp;
-									LinkedList<Node> sol = search(getStrategy("astar", initialState), initialState);
-									if(sol != null && !sol.isEmpty()) {
-										reachableGoals[row2][col2] = g; //add to final goal array
+									if (dijkstraGoalMap.get(g)[row][col] == null) continue;		// if not dijkstra value, goal is not reachable for the agent
+									else {
+										reachableGoals[g.getPos().row][g.getPos().col] = g;
 										reachableGoalsList.add(g);
 									}
+									
+//									Goal[][] gsTemp = new Goal[MAX_ROW][MAX_COL]; //array with single goal to test
+//									int row2 = g.getPos().row;
+//									int col2 = g.getPos().col;
+//									gsTemp[row2][col2] = g;
+//									initialState.goals = gsTemp;
+//									long t1 = System.currentTimeMillis();
+//									LinkedList<Node> sol = search(getStrategy("bfs", initialState), initialState);
+//									System.err.println("same color agent : " + (System.currentTimeMillis()-t1));
+//									if(sol != null && !sol.isEmpty()) {
+//										reachableGoals[row2][col2] = g; //add to final goal array
+//										reachableGoalsList.add(g);
+//									}
 								}
 							}
 						}
@@ -276,6 +322,8 @@ public class AIClient {
 				}
 			}
 		}
+		System.err.println("STATES : "+ (System.currentTimeMillis()-start));
+//		System.exit(0);
 	}
 
 
@@ -344,7 +392,7 @@ public class AIClient {
 	}
 
 	public Map<Goal, Integer[][]> getDijkstraMap() {
-		return this.dijkstraMap;
+		return this.dijkstraGoalMap;
 	}
 	
 	public LinkedList<Node> search(Strategy strategy, Node initialState) throws IOException {
@@ -571,7 +619,7 @@ public class AIClient {
 					resetAgents();
 //					startOver(strategies, agentOrder.get(0));
 					execute = false;
-					break;
+//					break;	// dont break, let the agents re-figure out things
 				}
 			}
 			
@@ -588,11 +636,11 @@ public class AIClient {
 						
 						// make sure the agent is nobody's helper before resetting own help variabels
 						boolean goalButHelping = false;
-//						for (Agent b : agentIDs) {
-//							if (a != b && b.helper == a && a.getsHelp != b) {
-//								goalButHelping = true;
-//							}
-//						}
+						for (Agent b : agentIDs) {
+							if (a != b && b.helper == a && a.getsHelp != b) {
+								goalButHelping = true;
+							}
+						}
 						if(a.getsHelp != null && !goalButHelping && a.isHelping == null) { 
 							System.err.println(a+" done reset");
 							a.getsHelp.getHelp = true;
@@ -856,23 +904,31 @@ public class AIClient {
 			}
 			Pos p = positions.getFirst();
 			
+//			if(positions.size() > 1) {
+//				pOld = positions.get(positions.size() - 2);
+//			} else {
+//				pOld = requests[inNeed.getID()][0];
+//			}
+//			Pos p = positions.getLast();
+			
+			
 			while(true) {
 				int r = p.row;
 				int c = p.col;
 				System.err.println(p+", "+pOld);
-				if (r-1>0 && !walls[r-1][c] && !(pOld.row == r-1 && pOld.col == c)) {
+				if (r-1>0 && !walls[r-1][c] && pOld != null && !(pOld.row == r-1 && pOld.col == c)) {
 					pOld = new Pos(r,c);
 					p = new Pos(r-1, c);
 				}
-				else if (r+1<getMaxRow() && !walls[r+1][c] && !(pOld.row == r+1 && pOld.col == c)) {
+				else if (r+1<getMaxRow() && !walls[r+1][c] && pOld != null && !(pOld.row == r+1 && pOld.col == c)) {
 					pOld = new Pos(r,c);
 					p = new Pos(r+1, c);
 				}
-				else if (c-1>0 && !walls[r][c-1] && !(pOld.row == r && pOld.col == c-1)) {
+				else if (c-1>0 && !walls[r][c-1] && pOld != null && !(pOld.row == r && pOld.col == c-1)) {
 					pOld = new Pos(r,c);
 					p = new Pos(r, c-1);
 				}
-				else if (c+1<getMaxCol() && !walls[r][c+1] && !(pOld.row == r && pOld.col == c+1)) {
+				else if (c+1<getMaxCol() && !walls[r][c+1] && pOld != null && !(pOld.row == r && pOld.col == c+1)) {
 					pOld = new Pos(r,c);
 					p = new Pos(r, c+1);
 				} else {
