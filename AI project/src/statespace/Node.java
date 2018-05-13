@@ -30,7 +30,7 @@ public class Node {
 	public Goal[][] goals;
 	
 	public Pos agentGoal;
-	public LinkedList<Pos> requestedPositions; 
+	public ArrayList<Pos> requestedPositions; 
 	
 	public Node parent;
 	public Command action;
@@ -230,30 +230,6 @@ public class Node {
 	}
 
 	public boolean cellIsFree(int row, int col) {
-//		if(!ignore) {
-//			Agent helper = agent.isHelping;
-//			Box box = client.getCurrentSubState().boxes[row][col];
-//			if(box != null && !box.getColor().equals(agent.getColor())) {
-////				for(Agent helper : agent.getHelpers()) {
-//					if(helper.getReachableBoxes().contains(box)) {
-//						return false;
-//					}
-////				}
-//				return true;
-//			}
-//			
-//			Agent a = client.getCurrentSubState().agents[row][col];
-//			if(a != null) {
-////				for(Agent helper : agent.getHelpers()) {
-//					if(helper == a) {
-//						return false;
-//					}
-////				}
-//				return true;
-//			}	
-//
-////			return !client.getWalls()[row][col];
-//		}
 		boolean helping = true;
 		if(!ignore && agent.isHelping != null) {
 			helping = client.getCurrentSubState().agents[row][col] != agent.isHelping
@@ -286,11 +262,11 @@ public class Node {
 		return copy;
 	}
 
-	public LinkedList<Node> extractPlan() {
-		LinkedList<Node> plan = new LinkedList<Node>();
+	public ArrayList<Node> extractPlan() {
+		ArrayList<Node> plan = new ArrayList<Node>();
 		Node n = this;
 		while (!n.isInitialState()) {
-			plan.addFirst(n);
+			plan.add(0,n);
 			n = n.parent;
 		}
 		return plan;
@@ -354,7 +330,7 @@ public class Node {
 		return s.toString();
 	}
 	
-public int calculateDistanceToGoal() {
+	public int calculateDistanceToGoal() {
 		
 		int distanceToGoals = 0;
 		int distanceToBoxes = 0;
