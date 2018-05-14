@@ -421,8 +421,7 @@ public class AIClient {
 				}
 			}
 		}
-		System.err.println("!asd");
-		System.exit(0);
+		
 		System.err.println("STATES : "+ (System.currentTimeMillis()-start));
 	}
 
@@ -883,7 +882,7 @@ public class AIClient {
 
 		} else if (!newInitialState.goTo && newInitialState.goToBox != null) {
 			// Get most prioritized goal
-			Goal goal = client.getPrioritizedGoal(newInitialState.goToBox);
+			Goal goal = client.getPrioritizedGoal(newInitialState.goToBox, a);
 //			System.err.println("Goal found " + goal + ", pos " + goal.getPos());
 //			try {
 //				TimeUnit.SECONDS.sleep(2);
@@ -1087,7 +1086,7 @@ public class AIClient {
 
 		Node newInitialState = copyNode(currentStates[helper.getID()], inNeed, helper);
 
-		if (inNeed.color == helper.color && currentStates[helper.getID()].goToGoal == null) {
+		if (inNeed.color == helper.color && currentStates[helper.getID()].goToGoal == null && currentStates[inNeed.getID()].goToBox != null) {
 
 			System.err.println("Agent " + helper + " tries to take over agent " + inNeed + "'s job");
 
@@ -1695,18 +1694,18 @@ public class AIClient {
 		return currentStates[i];
 	}
 
-	private Goal getPrioritizedGoal(Box box) {
+	private Goal getPrioritizedGoal(Box box, int a) {
 		Goal goal = null;
 		
-		int r = -1;
-		int c = -1;
+		int boxRow = -1;
+		int boxCol = -1;
 		int distanceToGoal = Integer.MAX_VALUE;
 		
 		for (int row = 1; row < MAX_ROW - 1; row++) {
 			for (int col = 1; col < MAX_COL - 1; col++) {
 				if (boxes[row][col] == box) {
-					r = row;
-					c = col;
+					boxRow = row;
+					boxCol = col;
 					break;
 				}
 			}
@@ -1721,13 +1720,13 @@ public class AIClient {
 				
 					Goal maybeGoal = goalPriorityList.get(i).get(j);
 					
-					if (Character.toLowerCase(box.getLabel()) == maybeGoal.getLabel() && !maybeGoal.inWorkingProcess) {
+					if (agentIDs[a].reachableGoals.contains(maybeGoal) && Character.toLowerCase(box.getLabel()) == maybeGoal.getLabel() && !maybeGoal.inWorkingProcess) {
 					
 						Box maybeBox = state.boxes[maybeGoal.getPos().row][maybeGoal.getPos().col];
 						
 						if (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != maybeGoal.getLabel()) {
-							if (dijkstraGoalMap.get(maybeGoal)[r][c] < distanceToGoal) {
-								distanceToGoal = dijkstraGoalMap.get(maybeGoal)[r][c];
+							if (dijkstraGoalMap.get(maybeGoal)[boxRow][boxCol] < distanceToGoal) {
+								distanceToGoal = dijkstraGoalMap.get(maybeGoal)[boxRow][boxCol];
 								goal = maybeGoal;
 							}
 						}

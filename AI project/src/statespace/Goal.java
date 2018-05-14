@@ -21,7 +21,7 @@ public class Goal extends Element {
 	
 	@Override
 	public String toString() {
-		return label + ", " + pos;
+		return "" + label;
 	}
 	
 //	public int getDistanceToGoal(Point p) {

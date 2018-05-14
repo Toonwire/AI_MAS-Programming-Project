@@ -26,7 +26,7 @@ public class Box extends Element {
 	
 	@Override
 	public String toString() {
-		return label + ", " + pos;
+		return "" + label;
 	}
 	
 }

@@ -80,9 +80,12 @@ public class Agent {
 							 int distance = Integer.MAX_VALUE;
 							 
 							 for (Goal goal : client.getGoalListMap().get(bc)) {
-								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
-								 if (distance > dijkstra[row][col])
-									 distance = dijkstra[row][col];
+								 if (reachableGoals.contains(goal))
+									 distance = goal.priority;
+								 
+//								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
+//								 if (reachableGoals.contains(goal) && distance > dijkstra[row][col])
+//									 distance = dijkstra[row][col];
 							 }
 							 
 							 listCount.add(distance);
