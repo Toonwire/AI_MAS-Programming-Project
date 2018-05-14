@@ -56,15 +56,6 @@ public class Agent {
 		this.reachableBoxes = boxes;
 	}
 
-	public LinkedList<Agent> getHelpers() {
-		if(helper == null) {
-			return new LinkedList<Agent>();
-		}
-		LinkedList<Agent> helpers = helper.getHelpers();
-		helpers.add(helper);
-		return helpers;
-	}
-
 	public void setHelper(Agent helper) {
 		this.helper = helper;
 	}

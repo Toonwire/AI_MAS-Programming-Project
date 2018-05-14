@@ -49,13 +49,8 @@ public class MultiNode {
 		
 		int newAgentRow = agentRow + Command.dirToRowChange(command.dir1);
 		int newAgentCol = agentCol + Command.dirToColChange(command.dir1);
-
-		System.err.println("WOOOOOOOT COMMAND: " + command);
-		System.err.println("WOOOOOOOT ROW : " + newAgentRow + "," + agentRow);
-		System.err.println("WOOOOOOOT COL: " + newAgentCol + "," + agentCol);
 		
 		//Move agent
-//		System.err.println(""+command+" "+newAgentRow+" "+newAgentCol);
 		agents[newAgentRow][newAgentCol] = agents[agentRow][agentCol];
 		agents[agentRow][agentCol] = null;
 		agentPos[i] = new Pos(newAgentRow, newAgentCol);

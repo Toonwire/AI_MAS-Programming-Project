@@ -508,11 +508,11 @@ public class Node {
 						for (Goal goal : freeGoals) {
 							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
 								
-								int distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
-													 requestedPositions != null ? 0 :
-													 client.getDijkstraMap().get(goal)[row][col];
+								Integer distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
+														 requestedPositions != null ? 0 :
+														 client.getDijkstraMap().get(goal)[row][col];
 								
-								if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
+								if (distanceToGoal != null && distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
 									distanceToNearestGoal = distanceToGoal;
 							}
 						}
