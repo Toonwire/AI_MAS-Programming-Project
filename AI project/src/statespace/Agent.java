@@ -52,10 +52,18 @@ public class Agent {
 		return reachableBoxes;
 	}
 
-	public void setReachableBoxes(ArrayList<Box> boxes) {
-		this.reachableBoxes = boxes;
+	public void setReachableBoxes(ArrayList<Box> boxes) { 
+		if (boxes != null) this.reachableBoxes = boxes;		
 	}
 
+	public ArrayList<Goal> getReachableGoals() {
+		return reachableGoals;
+	}
+
+	public void setReachableGoals(ArrayList<Goal> goals) { 
+		if (goals != null) this.reachableGoals = goals;
+	}
+	
 	public void setHelper(Agent helper) {
 		this.helper = helper;
 	}

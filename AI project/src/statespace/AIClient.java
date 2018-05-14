@@ -121,9 +121,9 @@ public class AIClient {
 					Agent a = new Agent(chr, c, this);
 					agents[row][col] = a;
 
-					if (colorAgents.get(c) == null) {
+					if (colorAgents.get(c) == null)
 						colorAgents.put(c, 0);
-					}
+					
 					colorAgents.put(c, colorAgents.get(c) + 1);
 					agentCounter++;
 				} else if ('A' <= chr && chr <= 'Z') { // Box.
@@ -136,7 +136,8 @@ public class AIClient {
 					boxes[row][col] = box;
 					boxMap.get(c)[row][col] = box;
 					
-					if (!boxListMap.containsKey(chr)) boxListMap.put(chr, new ArrayList<Box>());
+					if (!boxListMap.containsKey(chr)) 
+						boxListMap.put(chr, new ArrayList<Box>());
 					boxListMap.get(chr).add(box);
 					
 				} else if ('a' <= chr && chr <= 'z') { // Goal.
@@ -151,9 +152,8 @@ public class AIClient {
 
 					goalList.add(goal);
 
-					if(colorGoals.get(c) == null) {
+					if (!colorGoals.containsKey(c))
 						colorGoals.put(c, new ArrayList<Goal>());
-					}
 					colorGoals.get(c).add(goal);
 
 					if (!goalListMap.containsKey(chr))
@@ -409,13 +409,13 @@ public class AIClient {
 						initialState.goals = reachableGoals;
 					} else {
 						initialState.goals = goalMap.get(c);
-						a.reachableGoals = colorGoals.get(c);
+						a.setReachableGoals(colorGoals.get(c));
 					}
 					initialStates.put(a, initialState);
 					// System.err.println(a+"'s reachable boxes: "+reachableBoxesList+"\n
 					// "+initialState);
 					
-
+					System.err.println("Agent " + a);
 					System.err.println("Agent " + a + " has goals " + a.reachableGoals.toString());
 					System.err.println("Agent " + a + " has boxes " + a.reachableBoxes.toString());
 				}
