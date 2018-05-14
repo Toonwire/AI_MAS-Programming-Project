@@ -2,7 +2,7 @@ package statespace;
 
 public class Element {
 
-	private char label;
+	protected char label;
 	
 	public Element(char label) {
 		this.label = label;

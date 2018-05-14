@@ -1,6 +1,6 @@
 package statespace;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 import sampleclients.MultiCommand;
 
@@ -8,12 +8,12 @@ public class Agent {
 	public static Agent wait;
 	char id;
 	String color;
-	LinkedList<Box> reachableBoxes;
-	LinkedList<Goal> reachableGoals;
+	public ArrayList<Box> reachableBoxes = new ArrayList<>();;
+	public ArrayList<Goal> reachableGoals = new ArrayList<>();;
 	public Agent helper;
 	public Agent isHelping = null;
 	public Agent getsHelp = null;
-	public LinkedList<Pos> avoidList;
+	public ArrayList<Pos> avoidList;
 	public boolean getHelp = true;
 	public boolean helps = false;
 	public int waiting = 0;
@@ -24,7 +24,6 @@ public class Agent {
 		this.id = id;
 		this.color = color;
 		this.client = client;
-		reachableBoxes = new LinkedList<>();
 		System.err.println("Found " + color + " agent " + id);
 	}
 
@@ -49,11 +48,11 @@ public class Agent {
 		return "" + id;
 	}
 
-	public LinkedList<Box> getReachableBoxes() {
+	public ArrayList<Box> getReachableBoxes() {
 		return reachableBoxes;
 	}
 
-	public void setReachableBoxes(LinkedList<Box> boxes) {
+	public void setReachableBoxes(ArrayList<Box> boxes) {
 		this.reachableBoxes = boxes;
 	}
 
@@ -61,9 +60,9 @@ public class Agent {
 		this.helper = helper;
 	}
 	
-	public LinkedList<Box> getBoxesNotInGoal() {
-		LinkedList<Box> list = new LinkedList<Box>();
-		LinkedList<Integer> listCount = new LinkedList<Integer>();
+	public ArrayList<Box> getBoxesNotInGoal() {
+		ArrayList<Box> list = new ArrayList<Box>();
+		ArrayList<Integer> listCount = new ArrayList<Integer>();
 		
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {

@@ -19,6 +19,11 @@ public class Goal extends Element {
 		return pos;
 	}
 	
+	@Override
+	public String toString() {
+		return label + ", " + pos;
+	}
+	
 //	public int getDistanceToGoal(Point p) {
 //		return Math.abs(p.x - pos.row) + Math.abs(p.y - pos.col);
 //	}
