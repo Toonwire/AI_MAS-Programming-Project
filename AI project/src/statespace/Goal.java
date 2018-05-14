@@ -1,7 +1,5 @@
 package statespace;
 
-import java.util.ArrayList;
-
 public class Goal extends Element {
 
 	private Pos pos;
@@ -19,6 +17,11 @@ public class Goal extends Element {
 
 	public Pos getPos() {
 		return pos;
+	}
+	
+	@Override
+	public String toString() {
+		return "" + label;
 	}
 	
 //	public int getDistanceToGoal(Point p) {

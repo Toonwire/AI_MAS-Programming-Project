@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -285,11 +286,11 @@ public class Node {
 		return copy;
 	}
 
-	public LinkedList<Node> extractPlan() {
-		LinkedList<Node> plan = new LinkedList<Node>();
+	public ArrayList<Node> extractPlan() {
+		ArrayList<Node> plan = new ArrayList<Node>();
 		Node n = this;
 		while (!n.isInitialState()) {
-			plan.addFirst(n);
+			plan.add(0,n);
 			n = n.parent;
 		}
 		return plan;
@@ -354,191 +355,195 @@ public class Node {
 	}
 	
 	public int calculateDistanceToGoal() {
-
-		int penalty = 0;
-		if(required != null) {
-			Box box = client.getCurrentSubState().boxes[required.row][required.col];
-			if (box != null && !box.getColor().equals(agent.getColor())) {
-				penalty += 50;
-			} 
-			if (client.getCurrentSubState().agents[required.row][required.col] != null)
-				penalty += 5;
-			Goal goal = client.getGoals()[required.row][required.col];
-			if(goal != null && goals[required.row][required.col] == null) {
-				penalty += 5;
-			}
-		}
-		
-		// Add penalty moving a box out of its goal 
-		for (int row = 1; row < client.getMaxRow() - 1; row++) {
-			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-				
-				Box box = boxes[row][col];
-				Goal goal = goals[row][col];
-				
-				// If box is in its goal, subtract 5
-				if (box != null && box.goal != null && box.goal == goal) {
-					penalty -= 5;
-				
-				// If box is not in its goal, add 5
-				} else if (box != null) {
+			int penalty = 0;
+			if(required != null) {
+				Box box = client.getCurrentSubState().boxes[required.row][required.col];
+				if (box != null && !box.getColor().equals(agent.getColor())) {
+					penalty += 50;
+				} 
+				if (client.getCurrentSubState().agents[required.row][required.col] != null)
+					penalty += 5;
+				Goal goal = client.getGoals()[required.row][required.col];
+				if(goal != null && goals[required.row][required.col] == null) {
 					penalty += 5;
 				}
 			}
-		}
-		
-		int distanceForBox = 0;
-		int distanceForAgent = 0;
-		if (goToBox != null && goToGoal != null) {
+			
+			// Add penalty moving a box out of its goal 
 			for (int row = 1; row < client.getMaxRow() - 1; row++) {
 				for (int col = 1; col < client.getMaxCol() - 1; col++) {
-					if (boxes[row][col] == goToBox) {
-						distanceForBox = client.getDijkstraMap().get(goToGoal)[row][col];
+					
+					Box box = boxes[row][col];
+					Goal goal = goals[row][col];
+					
+					// If box is in its goal, subtract 5
+					if (box != null && box.goal != null && box.goal == goal) {
+						penalty -= 5;
+					
+					// If box is not in its goal, add 5
+					} else if (box != null) {
+						penalty += 5;
 					}
 				}
 			}
-			distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
 			
-			if (distanceForAgent < distanceForBox) {
-				penalty += 5;
+			int distanceForBox = 0;
+			int distanceForAgent = 0;
+			if (goToBox != null && goToGoal != null) {
+				for (int row = 1; row < client.getMaxRow() - 1; row++) {
+					for (int col = 1; col < client.getMaxCol() - 1; col++) {
+						if (boxes[row][col] == goToBox) {
+							distanceForBox = client.getDijkstraMap().get(goToGoal)[row][col];
+						}
+					}
+				}
+				distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
+				
+				if (distanceForAgent < distanceForBox) {
+					penalty += 5;
+				}
 			}
-		}
-		
-		// If the agent is doing his own shit
-		if (goToBox != null) {
+			
+			// If the agent is doing his own shit
+			if (goToBox != null) {
 
-			// If the agent is going for a box  
-			if (goTo) {
-				for (int row = 1; row < client.getMaxRow() - 1; row++) {
-					for (int col = 1; col < client.getMaxCol() - 1; col++) {
-						if (boxes[row][col] == goToBox) {
-							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty));
-							return Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty;
-						}
-					}
-				}
-			
-			// If the agent is moving a box to its goal
-			} else {
-				for (int row = 1; row < client.getMaxRow() - 1; row++) {
-					for (int col = 1; col < client.getMaxCol() - 1; col++) {
-						if (boxes[row][col] == goToBox) {
-							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
-							return client.getDijkstraMap().get(goToGoal)[row][col] + penalty;
-						}
-					}
-				}
-			}
-		}
-		
-		
-		
-		
-		
-		int distanceToGoals = 0;
-		int distanceToBoxes = 0;
-		// Distance from agent to the  nearest box
-		int distanceToNearestBox = 0;
-		
-		int distanceToAgentGoal = 0;
-		
-		// Calculate manhattan distance from a box to the nearest goal for that box, which is not occupied.
-		// Iterate through the grid
-		
-		List<Goal> freeGoals = new ArrayList<Goal>();
-		for (int row = 1; row < client.getMaxRow() - 1; row++) {
-			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-				Goal goal = goals[row][col];
-				Box box = boxes[row][col];
-				
-				if (box == null && goal != null) {
-					freeGoals.add(goal);
-				} else if (goal != null && Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
-					freeGoals.add(goal);
-				}
-			}
-		}
-		
-		for (int row = 1; row < client.getMaxRow() - 1; row++) {
-			for (int col = 1; col < client.getMaxCol() - 1; col++) {
-				
-				Box box = this.boxes[row][col];
-				boolean boxInGoal = false;
-				
-				// Check if there is a box in the cell
-				// If not, continue
-				if (box != null) {
-					
-					int distanceToNearestGoal = 0;
-					
-					Goal goalForBox = this.goals[row][col];
-					
-					if (goalForBox != null && Character.toLowerCase(box.getLabel()) == goalForBox.getLabel()) {
-						boxInGoal = true;
-					}
-					
-					// If the box is not in goal, and some goals are left open
-					// Then find the nearest goal
-					if (!freeGoals.isEmpty() && !boxInGoal) {
-						
-						for (Goal goal : freeGoals) {
-							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
-								
-								System.err.println(client.getDijkstraMap().get(goal));
-								int distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
-													 requestedPositions != null ? 0 :
-													 client.getDijkstraMap().get(goal)[row][col];
-								
-								if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
-									distanceToNearestGoal = distanceToGoal;
+				// If the agent is going for a box  
+				if (goTo) {
+					for (int row = 1; row < client.getMaxRow() - 1; row++) {
+						for (int col = 1; col < client.getMaxCol() - 1; col++) {
+							if (boxes[row][col] == goToBox) {
+								//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty));
+								return Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty;
 							}
 						}
-					
-						distanceToGoals += Math.pow(distanceToNearestGoal,1);
 					}
-					
-					// Calculate the distance to the nearest box from the agent, which is not in a goal state
-					int distanceToCurrentBox = Math.abs(row - agentRow) + Math.abs(col - agentCol);
-					
-					if (!boxInGoal)
-						distanceToBoxes += distanceToCurrentBox;
-					
-					if ((distanceToCurrentBox < distanceToNearestBox || distanceToNearestBox == 0) && !boxInGoal) {
-						distanceToNearestBox = distanceToCurrentBox;
-					} 
+				
+				// If the agent is moving a box to its goal
+				} else {
+					for (int row = 1; row < client.getMaxRow() - 1; row++) {
+						for (int col = 1; col < client.getMaxCol() - 1; col++) {
+							if (boxes[row][col] == goToBox) {
+								//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
+								return client.getDijkstraMap().get(goToGoal)[row][col] + penalty;
+							}
+						}
+					}
 				}
 			}
-		}
-		
-		// Set factors for measurements
-		double goalFactor = 10;
-		double agentFactor = 0.5;
-		double distanceFactor = 1.0;
-		double agentGoalFactor = 1.0;
-
-		// Calculate the amount of goals missing
-		double goalScore = client.getGoalList().size();
-		
-		if (freeGoals.isEmpty() && agentGoal != null) {
-			distanceToAgentGoal = (int) ((Math.abs(agentGoal.row - agentRow) + Math.abs(agentGoal.col - agentCol)) * agentGoalFactor);
-		} else {
-			if (agentGoal != null) distanceToAgentGoal = client.getMaxRow() + client.getMaxCol();
-			for (Goal goal : freeGoals) {
-				Box goalBox = this.boxes[goal.getPos().row][goal.getPos().col]; 
-				if (goalBox != null)
-					if (Character.toLowerCase(goalBox.getLabel()) == goal.getLabel())
-						goalScore -= 1;
-			}
-		}
-		
-		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
-		
-		int distanceToNearestBoxSum = (int) (distanceToNearestBox * agentFactor);
-		int distanceToAllBoxesSum = (int) (distanceToBoxes * agentFactor); // Not in use right now
-		
-		int goalScoreSum = (int) (goalScore * goalFactor);
-		
-		return distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum + distanceToAgentGoal + penalty;
+//		
+//		
+//		
+//		
+//		
+//		int distanceToGoals = 0;
+//		int distanceToBoxes = 0;
+//		// Distance from agent to the  nearest box
+//		int distanceToNearestBox = 0;
+//		
+//		int distanceToAgentGoal = 0;
+//		
+//		// Calculate manhattan distance from a box to the nearest goal for that box, which is not occupied.
+//		// Iterate through the grid
+//
+////		List<Goal> freeGoals = new ArrayList<Goal>();
+////		for (Entry<Goal, Integer[][]> goalEntry : client.getDijkstraMap().entrySet()) {
+////			Goal goal = goalEntry.getKey();
+////			Box box = boxes[goal.getPos().row][goal.getPos().col];
+////			
+////			if (box == null || Character.toLowerCase(box.getLabel()) != goal.getLabel()) {
+////				freeGoals.add(goal);
+////			}
+////		}
+//		
+//		List<Goal> freeGoals = new ArrayList<Goal>();
+//		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+//			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+//				Goal goal = goals[row][col];
+//				Box box = boxes[row][col];
+//				
+//				if (box == null && goal != null) {
+//					freeGoals.add(goal);
+//				} else if (goal != null && Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+//					freeGoals.add(goal);
+//				}
+//			}
+//		}
+//		
+//		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+//			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+//				
+//				Box box = this.boxes[row][col];
+//				boolean boxInGoal = false;
+//				
+//				// Check if there is a box in the cell
+//				// If not, continue
+//				if (box != null) {
+//					int distanceToNearestGoal = 0;
+//					Goal goalForBox = this.goals[row][col];
+//					
+//					if (goalForBox != null && Character.toLowerCase(box.getLabel()) == goalForBox.getLabel()) {
+//						boxInGoal = true;
+//					}
+//					
+//					// If the box is not in goal, and some goals are left open
+//					// Then find the nearest goal
+//					if (!freeGoals.isEmpty() && !boxInGoal) {
+//						for (Goal goal : freeGoals) {
+//							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
+//								
+//
+//								Integer distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
+//														 requestedPositions != null ? 0 :
+//														 client.getDijkstraMap().get(goal)[row][col];
+//								
+//								if (distanceToGoal != null && distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
+//									distanceToNearestGoal = distanceToGoal;
+//							}
+//						}
+//					
+//						distanceToGoals += distanceToNearestGoal;
+//					}
+//					
+//					// Calculate the distance to the nearest box from the agent, which is not in a goal state
+//					int distanceToCurrentBox = Math.abs(row - agentRow) + Math.abs(col - agentCol);
+//					
+//					if (!boxInGoal)
+//						distanceToBoxes += distanceToCurrentBox;
+//					
+//					if ((distanceToCurrentBox < distanceToNearestBox || distanceToNearestBox == 0) && !boxInGoal) {
+//						distanceToNearestBox = distanceToCurrentBox;
+//					} 
+//				}
+//			}
+//		}
+//		
+//		// Set factors for measurements
+//		double goalFactor = 10;
+//		double agentFactor = 0.5;
+//		double distanceFactor = 1.0;
+//		double agentGoalFactor = 1.0;
+//
+//		// Calculate the amount of goals missing
+//		double goalScore = client.getGoalList().size();
+//		
+//		if (freeGoals.isEmpty() && agentGoal != null) {
+//			distanceToAgentGoal = (int) ((Math.abs(agentGoal.row - agentRow) + Math.abs(agentGoal.col - agentCol)) * agentGoalFactor);
+//		} else {
+//			if (agentGoal != null) distanceToAgentGoal = client.getMaxRow() + client.getMaxCol();
+//			for (Goal goal : freeGoals) {
+//				Box goalBox = this.boxes[goal.getPos().row][goal.getPos().col]; 
+//				if (goalBox != null)
+//					if (Character.toLowerCase(goalBox.getLabel()) == goal.getLabel())
+//						goalScore -= 1;
+//			}
+//		}
+//		
+//		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
+//		int distanceToNearestBoxSum = (int) (distanceToNearestBox * agentFactor);
+//		int distanceToAllBoxesSum = (int) (distanceToBoxes * agentFactor); // Not in use right now
+//		int goalScoreSum = (int) (goalScore * goalFactor);
+//		
+		return penalty;
 	}
 
 	public Pos getRequired() {

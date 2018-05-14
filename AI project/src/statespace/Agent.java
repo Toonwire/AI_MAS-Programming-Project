@@ -1,6 +1,6 @@
 package statespace;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 import sampleclients.MultiCommand;
 
@@ -8,12 +8,12 @@ public class Agent {
 	public static Agent wait;
 	char id;
 	String color;
-	LinkedList<Box> reachableBoxes;
-	LinkedList<Goal> reachableGoals;
-//	public Agent helper;
+	public ArrayList<Box> reachableBoxes = new ArrayList<>();;
+	public ArrayList<Goal> reachableGoals = new ArrayList<>();;
+	public Agent helper;
 	public Agent isHelping = null;
 	public Agent getsHelp = null;
-	public LinkedList<Pos> avoidList;
+	public ArrayList<Pos> avoidList;
 	public boolean getHelp = true;
 	public boolean helps = false;
 	public int waiting = 0;
@@ -24,8 +24,8 @@ public class Agent {
 		this.id = id;
 		this.color = color;
 		this.client = client;
-		reachableBoxes = new LinkedList<>();
-		reachableGoals = new LinkedList<>();
+		reachableBoxes = new ArrayList<>();
+		reachableGoals = new ArrayList<>();
 		System.err.println("Found " + color + " agent " + id);
 		System.err.println(reachableGoals);
 	}
@@ -51,30 +51,29 @@ public class Agent {
 		return "" + id;
 	}
 
-	public LinkedList<Box> getReachableBoxes() {
+	public ArrayList<Box> getReachableBoxes() {
 		return reachableBoxes;
 	}
 
-	public void setReachableBoxes(LinkedList<Box> boxes) {
-		this.reachableBoxes = boxes;
+	public void setReachableBoxes(ArrayList<Box> boxes) { 
+		if (boxes != null) this.reachableBoxes = boxes;		
 	}
 
-//	public LinkedList<Agent> getHelpers() {
-//		if(helper == null) {
-//			return new LinkedList<Agent>();
-//		}
-//		LinkedList<Agent> helpers = helper.getHelpers();
-//		helpers.add(helper);
-//		return helpers;
-//	}
+	public ArrayList<Goal> getReachableGoals() {
+		return reachableGoals;
+	}
 
-//	public void setHelper(Agent helper) {
-//		this.helper = helper;
-//	}
+	public void setReachableGoals(ArrayList<Goal> goals) { 
+		if (goals != null) this.reachableGoals = goals;
+	}
 	
-	public LinkedList<Box> getBoxesNotInGoal() {
-		LinkedList<Box> list = new LinkedList<Box>();
-		LinkedList<Integer> listCount = new LinkedList<Integer>();
+	public void setHelper(Agent helper) {
+		this.helper = helper;
+	}
+	
+	public ArrayList<Box> getBoxesNotInGoal() {
+		ArrayList<Box> list = new ArrayList<Box>();
+		ArrayList<Integer> listCount = new ArrayList<Integer>();
 		
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
@@ -92,9 +91,12 @@ public class Agent {
 							 int distance = Integer.MAX_VALUE;
 							 
 							 for (Goal goal : client.getGoalListMap().get(bc)) {
-								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
-								 if (distance > dijkstra[row][col])
-									 distance = dijkstra[row][col];
+								 if (reachableGoals.contains(goal))
+									 distance = goal.priority;
+								 
+//								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
+//								 if (reachableGoals.contains(goal) && distance > dijkstra[row][col])
+//									 distance = dijkstra[row][col];
 							 }
 							 
 							 listCount.add(distance);
