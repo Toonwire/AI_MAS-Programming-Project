@@ -31,7 +31,7 @@ public class Node {
 	public Goal[][] goals;
 	
 	public Pos agentGoal;
-	public LinkedList<Pos> requestedPositions; 
+	public ArrayList<Pos> requestedPositions; 
 	
 	public Node parent;
 	public Command action;
@@ -568,10 +568,6 @@ public class Node {
 	}
 	
 	public void updateBoxes() {
-		System.err.println("Boxes before update:");
-		System.err.println(this);
-
-		System.err.println("subs "+client.getCurrentSubState());
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			for (int col = 0; col < client.getMaxCol(); col++) {
@@ -583,8 +579,5 @@ public class Node {
 				}
 			}	
 		}
-		
-		System.err.println("Boxes after update:");
-		System.err.println(this);
 	}
 }

@@ -1,10 +1,16 @@
 package statespace;
 
+import java.util.ArrayList;
+
 public class Goal extends Element {
 
 	private Pos pos;
 		
 	public boolean inWorkingProcess = false;
+
+	public Alley alley;
+
+	public int priority;
 	
 	public Goal(char label, Pos pos) {
 		super(label);

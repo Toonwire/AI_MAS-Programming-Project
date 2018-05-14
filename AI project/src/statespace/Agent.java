@@ -5,11 +5,12 @@ import java.util.LinkedList;
 import sampleclients.MultiCommand;
 
 public class Agent {
+	public static Agent wait;
 	char id;
 	String color;
 	LinkedList<Box> reachableBoxes;
 	LinkedList<Goal> reachableGoals;
-	public Agent helper;
+//	public Agent helper;
 	public Agent isHelping = null;
 	public Agent getsHelp = null;
 	public LinkedList<Pos> avoidList;
@@ -56,18 +57,18 @@ public class Agent {
 		this.reachableBoxes = boxes;
 	}
 
-	public LinkedList<Agent> getHelpers() {
-		if(helper == null) {
-			return new LinkedList<Agent>();
-		}
-		LinkedList<Agent> helpers = helper.getHelpers();
-		helpers.add(helper);
-		return helpers;
-	}
+//	public LinkedList<Agent> getHelpers() {
+//		if(helper == null) {
+//			return new LinkedList<Agent>();
+//		}
+//		LinkedList<Agent> helpers = helper.getHelpers();
+//		helpers.add(helper);
+//		return helpers;
+//	}
 
-	public void setHelper(Agent helper) {
-		this.helper = helper;
-	}
+//	public void setHelper(Agent helper) {
+//		this.helper = helper;
+//	}
 	
 	public LinkedList<Box> getBoxesNotInGoal() {
 		LinkedList<Box> list = new LinkedList<Box>();
@@ -77,7 +78,6 @@ public class Agent {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
 				 Box b = client.getCurrentSubState().boxes[row][col];
 				 Goal g = client.getGoals()[row][col];
-				 
 				 if (b != null && !b.inWorkingProcess && reachableBoxes.contains(b)) {
 
 					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {
