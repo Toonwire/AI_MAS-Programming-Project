@@ -116,7 +116,6 @@ public class AIClient {
 
 					Agent a = new Agent(chr, c, this);
 					agents[row][col] = a;
-
 					if (colorAgents.get(c) == null) {
 						colorAgents.put(c, 0);
 					}
@@ -259,7 +258,7 @@ public class AIClient {
 		}
 		
 		System.err.println(goalList);
-		// System.exit(0);
+
 
 		for (Map.Entry<Character, ArrayList<Goal>> entry : goalListMap.entrySet()) {
 			ArrayList<Goal> goals = entry.getValue();
@@ -368,7 +367,7 @@ public class AIClient {
 						initialState.goals = reachableGoals;
 					} else {
 						initialState.goals = goalMap.get(c);
-						a.reachableGoals = colorGoals.get(c);
+						if(colorGoals.get(c) != null) a.reachableGoals = colorGoals.get(c);
 					}
 					initialStates.put(a, initialState);
 					// System.err.println(a+"'s reachable boxes: "+reachableBoxesList+"\n
@@ -531,11 +530,13 @@ public class AIClient {
 
 			//////////////
 			Goal goal = getGoToGoal(client, a);
+			System.err.println(a.reachableGoals);
 			if (goal != null) {
 				box = getBox(a, goal);
 			}
 			initialState.goToGoal = goal;
 			/////////////////////
+			
 
 			initialState.goToBox = box;
 			initialState.goTo = true;
@@ -555,13 +556,14 @@ public class AIClient {
 				originalSolutions[a.getID()] = new LinkedList<Node>(solution);
 
 				updateRequirements(solution, a.getID());
-				System.err.println(solution);
+//				System.err.println(solution);
 				// allSolutions[a.getID()] = new LinkedList<LinkedList<Node>>();
 				// allSolutions[a.getID()].add((LinkedList<Node>) solution.clone());
 			} else {
 				System.err.println("COULD NOT FIND SOLUTION FOR " + a);
 			}
 		}
+
 		orderAgents();
 		// System.err.println("ORDER: "+agentOrder);
 
@@ -1367,14 +1369,14 @@ public class AIClient {
 			a = agentIDs[i];
 			Node node = initialStates.get(a);
 
-			 System.err.println("COST OF "+a+" :"+node.goToGoal+" "+(node.goToGoal.priority));
+//			System.err.println("COST OF "+a+" :"+node.goToGoal+" "+(node.goToGoal.priority));
 			int index = 0;
 			while (index < agentOrder.size()) {
 				Agent agent = agentOrder.get(index);
 				int priority = 0;
-				priority = initialStates.get(agent).goToGoal.priority;
+				priority = (initialStates.get(agent).goToGoal != null) ? initialStates.get(agent).goToGoal.priority : Integer.MAX_VALUE;
 
-				if (node != null && node.goToGoal.priority <= priority) {
+				if (node != null && node.goToGoal != null && node.goToGoal.priority <= priority) {
 					break;
 				}
 				index++;

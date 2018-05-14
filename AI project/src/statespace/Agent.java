@@ -25,7 +25,9 @@ public class Agent {
 		this.color = color;
 		this.client = client;
 		reachableBoxes = new LinkedList<>();
+		reachableGoals = new LinkedList<>();
 		System.err.println("Found " + color + " agent " + id);
+		System.err.println(reachableGoals);
 	}
 
 	public String act() {

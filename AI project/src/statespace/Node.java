@@ -484,6 +484,7 @@ public class Node {
 						for (Goal goal : freeGoals) {
 							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
 								
+								System.err.println(client.getDijkstraMap().get(goal));
 								int distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
 													 requestedPositions != null ? 0 :
 													 client.getDijkstraMap().get(goal)[row][col];
