@@ -275,7 +275,7 @@ public class AIClient {
 						if (colorGoals.get(c) != null) { // ACCOUNT FOR AGENTS WITHOUT A GOAL
 							for(Goal g : colorGoals.get(c)) {
 								if (g != null) {
-									if (dijkstraGoalMap.get(g)[row][col] == null) continue;		// if not dijkstra value, goal is not reachable for the agent
+									if (dijkstraGoalMap.get(g)[row][col] == null) continue;		// if no dijkstra value, goal is not reachable for the agent
 									else {
 										reachableGoals[g.getPos().row][g.getPos().col] = g;
 										reachableGoalsList.add(g);

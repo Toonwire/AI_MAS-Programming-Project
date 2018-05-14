@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import statespace.Command;
@@ -341,6 +342,16 @@ public class Node {
 		
 		// Calculate manhattan distance from a box to the nearest goal for that box, which is not occupied.
 		// Iterate through the grid
+
+//		List<Goal> freeGoals = new ArrayList<Goal>();
+//		for (Entry<Goal, Integer[][]> goalEntry : client.getDijkstraMap().entrySet()) {
+//			Goal goal = goalEntry.getKey();
+//			Box box = boxes[goal.getPos().row][goal.getPos().col];
+//			
+//			if (box == null || Character.toLowerCase(box.getLabel()) != goal.getLabel()) {
+//				freeGoals.add(goal);
+//			}
+//		}
 		
 		List<Goal> freeGoals = new ArrayList<Goal>();
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
@@ -365,9 +376,7 @@ public class Node {
 				// Check if there is a box in the cell
 				// If not, continue
 				if (box != null) {
-					
 					int distanceToNearestGoal = 0;
-					
 					Goal goalForBox = this.goals[row][col];
 					
 					if (goalForBox != null && Character.toLowerCase(box.getLabel()) == goalForBox.getLabel()) {
@@ -377,20 +386,23 @@ public class Node {
 					// If the box is not in goal, and some goals are left open
 					// Then find the nearest goal
 					if (!freeGoals.isEmpty() && !boxInGoal) {
-						
 						for (Goal goal : freeGoals) {
 							if (Character.toLowerCase(box.getLabel()) == goal.getLabel()) {
 								
-								int distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
+//								System.err.println("OSDKASODKO : " + client.getDijkstraMap().get(goal)[row][col]);
+//								if (client.getDijkstraMap().get(goal)[row][col] == null) { // goal is out of reach during search 
+//									continue;
+//								}
+								Integer distanceToGoal = agentGoal != null ? goal.getPos().manhattanDistanceToPos(new Pos(row,col)) :
 													 requestedPositions != null ? 0 :
 													 client.getDijkstraMap().get(goal)[row][col];
-								
+
 								if (distanceToGoal < distanceToNearestGoal || distanceToNearestGoal == 0)
 									distanceToNearestGoal = distanceToGoal;
 							}
 						}
 					
-						distanceToGoals += Math.pow(distanceToNearestGoal,1);
+						distanceToGoals += distanceToNearestGoal;
 					}
 					
 					// Calculate the distance to the nearest box from the agent, which is not in a goal state
@@ -428,10 +440,8 @@ public class Node {
 		}
 		
 		int distanceToGoalsSum = (int) (distanceToGoals * distanceFactor); 
-		
 		int distanceToNearestBoxSum = (int) (distanceToNearestBox * agentFactor);
 		int distanceToAllBoxesSum = (int) (distanceToBoxes * agentFactor); // Not in use right now
-		
 		int goalScoreSum = (int) (goalScore * goalFactor);
 		
 		return distanceToGoalsSum + distanceToNearestBoxSum + goalScoreSum + distanceToAgentGoal;
