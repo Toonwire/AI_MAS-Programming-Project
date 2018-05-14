@@ -141,8 +141,7 @@ public class Node {
 						//char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
 						//char b = Character.toLowerCase(goToBox.getLabel());
 						//return g == b;
-						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col)
-						{
+						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col){
 							goToBox.goal = goToGoal;
 							return true;	
 						}

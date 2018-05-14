@@ -79,30 +79,28 @@ public class Agent {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
 				 Box b = client.getCurrentSubState().boxes[row][col];
 				 Goal g = client.getGoals()[row][col];
-				 if (b != null && !b.inWorkingProcess && reachableBoxes.contains(b)) {
 
-					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {
-				
-						 char bc = Character.toLowerCase(b.getLabel());
-						 System.err.println(client.getGoalListMap());
-						 if (client.getGoalListMap().containsKey(bc)) {
-							 list.add(b);
-							 
-							 int distance = Integer.MAX_VALUE;
-							 
-							 for (Goal goal : client.getGoalListMap().get(bc)) {
-								 if (reachableGoals.contains(goal))
-									 distance = goal.priority;
-								 
-//								 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
-//								 if (reachableGoals.contains(goal) && distance > dijkstra[row][col])
-//									 distance = dijkstra[row][col];
+				//Box is reachable and not in use
+				if (b != null && !b.inWorkingProcess && reachableBoxes.contains(b)) {
+					//Box is not already in goal
+					char bc = Character.toLowerCase(b.getLabel());
+					if((g == null || bc != g.getLabel())) {// && b.getColor() == this.color) {
+						//Box has a goal 
+						if (client.getGoalListMap().containsKey(bc)) {							 
+							 //Find free goal
+							 for(Goal goal : client.getGoalListMap().get(bc)) {
+								 Box bb = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
+
+								 //Goal is free
+								 if(bb == null || Character.toLowerCase(bb.getLabel()) != goal.getLabel() && reachableGoals.contains(goal)) {
+									 list.add(b);
+									 listCount.add(goal.priority);
+									 break;
+								 }
 							 }
-							 
-							 listCount.add(distance);
 						 }
 					 }
-				 }
+				}
 			}
 		}
 		
@@ -119,7 +117,7 @@ public class Agent {
 				}
 			}
 		}
-		
+		System.err.println(list);
 		return list;
 	}
 }
