@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import sampleclients.MultiCommand;
 
 public class Agent {
+	public static Agent wait;
 	char id;
 	String color;
 	LinkedList<Box> reachableBoxes;
@@ -68,7 +69,6 @@ public class Agent {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
 				 Box b = client.getCurrentSubState().boxes[row][col];
 				 Goal g = client.getGoals()[row][col];
-				 
 				 if (b != null && !b.inWorkingProcess && reachableBoxes.contains(b)) {
 
 					 if((g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && b.getColor() == this.color) {

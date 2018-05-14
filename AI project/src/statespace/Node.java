@@ -31,7 +31,7 @@ public class Node {
 	public Goal[][] goals;
 	
 	public Pos agentGoal;
-	public LinkedList<Pos> requestedPositions; 
+	public ArrayList<Pos> requestedPositions; 
 	
 	public Node parent;
 	public Command action;
@@ -232,30 +232,6 @@ public class Node {
 	}
 
 	public boolean cellIsFree(int row, int col) {
-//		if(!ignore) {
-//			Agent helper = agent.isHelping;
-//			Box box = client.getCurrentSubState().boxes[row][col];
-//			if(box != null && !box.getColor().equals(agent.getColor())) {
-////				for(Agent helper : agent.getHelpers()) {
-//					if(helper.getReachableBoxes().contains(box)) {
-//						return false;
-//					}
-////				}
-//				return true;
-//			}
-//			
-//			Agent a = client.getCurrentSubState().agents[row][col];
-//			if(a != null) {
-////				for(Agent helper : agent.getHelpers()) {
-//					if(helper == a) {
-//						return false;
-//					}
-////				}
-//				return true;
-//			}	
-//
-////			return !client.getWalls()[row][col];
-//		}
 		boolean helping = true;
 		if(!ignore && agent.isHelping != null) {
 			helping = client.getCurrentSubState().agents[row][col] != agent.isHelping
@@ -592,20 +568,16 @@ public class Node {
 	}
 	
 	public void updateBoxes() {
-		System.err.println("Boxes before update:");
-		System.err.println(this);
-		
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			for (int col = 0; col < client.getMaxCol(); col++) {
 				Box b = client.getCurrentSubState().boxes[row][col];
+
 				if(b != null && agent.getReachableBoxes().contains(b)) {
 					boxes[row][col] = b;
+					System.err.println("UPDATE NEW BOX TO "+row+", "+col);
 				}
 			}	
 		}
-		
-		System.err.println("Boxes after update:");
-		System.err.println(this);
 	}
 }
