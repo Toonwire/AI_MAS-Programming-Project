@@ -615,7 +615,7 @@ public class AIClient {
 			actions = new String[agentCounter];
 			boolean done = true;
 			System.err.println("\n---------- NEXT STATE -------------");
-
+			
 			System.err.println("initial\n" + state);
 			System.err.println("Agent order: " + agentOrder);
 
