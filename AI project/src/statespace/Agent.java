@@ -73,6 +73,7 @@ public class Agent {
 	
 	public ArrayList<Box> getBoxesNotInGoal() {
 		ArrayList<Box> list = new ArrayList<Box>();
+		ArrayList<Goal> used = new ArrayList<Goal>();
 		ArrayList<Integer> listCount = new ArrayList<Integer>();
 		
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
@@ -92,7 +93,9 @@ public class Agent {
 								 Box bb = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
 
 								 //Goal is free
-								 if(bb == null || Character.toLowerCase(bb.getLabel()) != goal.getLabel() && reachableGoals.contains(goal)) {
+								 if((bb == null || Character.toLowerCase(bb.getLabel()) != goal.getLabel()) 
+										 && reachableGoals.contains(goal) && !used.contains(goal)) {
+									 used.add(goal);
 									 list.add(b);
 									 listCount.add(goal.priority);
 									 break;
@@ -103,7 +106,9 @@ public class Agent {
 				}
 			}
 		}
-		
+		System.err.println(id);
+		System.err.println("BOXES: "+list);
+		System.err.println("BOXESC: "+listCount);
 		for (int i = 0; i < list.size(); i++) {
 			for (int j = 0; j < list.size() - 1; j++) {
 				if (listCount.get(j) > listCount.get(j + 1)) {

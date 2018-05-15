@@ -246,15 +246,15 @@ public class AIClient {
 			}
 			
 			ArrayList<Goal> tempGoals = new ArrayList<Goal>();
-			int heighestReachCells = 0;
+			int highestReachCells = 0;
 			for (int i = 0; i < redo; i++) {
-				if (goalListCount.get(i) > heighestReachCells) {
-					heighestReachCells = goalListCount.get(i); 
+				if (goalListCount.get(i) > highestReachCells) {
+					highestReachCells = goalListCount.get(i); 
 				}
 			}
 			
 			for (int i = 0; i < redo; i++) {
-				if (goalListCount.get(i) == heighestReachCells) {
+				if (goalListCount.get(i) == highestReachCells) {
 					tempGoals.add(goalList.get(i)); 
 				}
 			}
@@ -276,11 +276,11 @@ public class AIClient {
 			}
 			
 		}
-
-		// Get openings
+		System.err.println("goalList: "+goalList);
+		System.err.println("goalListCount: "+goalListCount);
+		// Save priority
 		for (int i = 0; i < goalList.size(); i++) {
 			Goal g = goalList.get(i);
-//			checkAlley(g);
 			System.err.println(g+" gets "+i);
 			g.priority = i;
 		}
@@ -579,9 +579,9 @@ public class AIClient {
 			
 			initialState.goToBox = box;
 			initialState.goTo = true;
-			// System.err.println("goToGoal: "+initialState.goToGoal);
-			// System.err.println("goToGoal: "+initialState.goToBox);
-			// System.exit(0);
+			 System.err.println("goToGoal: "+initialState.goToGoal);
+			 System.err.println("goToGoal: "+initialState.goToBox);
+
 
 			// Set box to be in working process - not to be moved by another agent
 			// initialState.goToBox.inWorkingProcess = true;
@@ -596,14 +596,13 @@ public class AIClient {
 				updateRequirements(solution, a.getID());
 				
 				System.err.println("Initial solution for agent " + a.getID());
-				System.err.println(solution);
+//				System.err.println(solution);
 			} else {
 				System.err.println("COULD NOT FIND SOLUTION FOR " + a);
 			}
 		}
 
 		orderAgents();
-		
 		System.err.println("Initial order of agents: " + agentOrder);
 
 		for (Agent a : initialStates.keySet()) {
@@ -615,7 +614,6 @@ public class AIClient {
 			actions = new String[agentCounter];
 			boolean done = true;
 			System.err.println("\n---------- NEXT STATE -------------");
-			TimeUnit.MILLISECONDS.sleep(500);
 			System.err.println("initial\n" + state);
 			System.err.println("Agent order: " + agentOrder);
 
@@ -929,7 +927,6 @@ public class AIClient {
 	
 			solutions[a] = solution;
 			currentStates[a] = newInitialState;
-					
 			updateRequirements(solutions[a], a);
 		} else {
 			if (newInitialState.goToBox != null) 
@@ -1179,7 +1176,6 @@ public class AIClient {
 					Command reverseAction = Command.reverse(act);
 					state = new MultiNode(state, helper.getID(), reverseAction);
 					currentStates[helper.getID()] = backupStates[helper.getID()];
-					
 					newInitialState = copyNode(currentStates[helper.getID()], inNeed, helper);
 				}
 				actions[helper.getID()] = null;
@@ -1201,7 +1197,7 @@ public class AIClient {
 
 			sol = createSolution(getStrategy("bfs", newInitialState), client, newInitialState);
 			
-			plan = "Helping agent, by moving away from requests positions";
+			plan = "Helping agent, by moving away from requests positions "+positions;
 		}
 		
 		if(sol == null) {
@@ -1219,7 +1215,6 @@ public class AIClient {
 				state = new MultiNode(state, inNeed.getID(), reverseAction);
 				curState = currentStates[inNeed.getID()];
 				currentStates[inNeed.getID()] = backupStates[inNeed.getID()];
-
 				actions[inNeed.getID()] = "NoOp";
 
 				solutions[inNeed.getID()].add(0, curState);
@@ -1288,7 +1283,6 @@ public class AIClient {
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 			
 			plan = "Helping agent, by moving away from avoidlist "+positions;
-			if(positions.contains(new Pos(11,4))) System.exit(0);
 		}
 		
 		System.err.println("Agent " + helper + " found a new plan to help his friend");
@@ -1300,7 +1294,7 @@ public class AIClient {
 		System.err.println(sol);
 		
 		solutions[helper.getID()] = sol;
-		
+
 		currentStates[helper.getID()] = newInitialState;
 		updateRequirements(solutions[helper.getID()], helper.getID());
 	}
@@ -1582,7 +1576,7 @@ public class AIClient {
 			
 			backupStates[a] = currentStates[a];
 			currentStates[a] = node;
-			
+
 			if (a == 1)
 				System.err.println("new current state:------------------------------------ \n" + currentStates[a]);
 			

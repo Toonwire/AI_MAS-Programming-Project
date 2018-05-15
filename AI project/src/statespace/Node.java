@@ -259,8 +259,7 @@ public class Node {
 		if (agent.isHelping != null) {
 			node = client.getCurrentState(agent.isHelping.getID());	
 		}
-		
-		return (boxes[pos.row][pos.col] == null || boxes[pos.row][pos.col]  == node.goToBox) && !(agentRow == pos.row && agentCol == pos.col);
+		return (boxes[pos.row][pos.col] == null || node == null || boxes[pos.row][pos.col] == node.goToBox) && !(agentRow == pos.row && agentCol == pos.col);
 	}
 	private boolean boxAt(int row, int col) {
 		return this.boxes[row][col] != null;
