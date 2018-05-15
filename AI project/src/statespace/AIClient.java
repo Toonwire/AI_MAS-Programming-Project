@@ -615,13 +615,28 @@ public class AIClient {
 			actions = new String[agentCounter];
 			boolean done = true;
 			System.err.println("\n---------- NEXT STATE -------------");
-			
+			TimeUnit.MILLISECONDS.sleep(500);
 			System.err.println("initial\n" + state);
 			System.err.println("Agent order: " + agentOrder);
 
 			reachedAgent = 0;
 			while (reachedAgent < agentOrder.size()) {
 				int a = agentOrder.get(reachedAgent).getID();
+//				//TEST
+//				if(agentIDs[a].getsHelp != null) {
+//					if(agentIDs[a].getsHelp.isHelping != agentIDs[a]) {
+//						System.err.println("ERROR :"+agentIDs[a]+"gets help from "+agentIDs[a].getsHelp+ " who is helping"+
+//								agentIDs[a].getsHelp.isHelping);
+//						System.exit(0);
+//					}
+//				}
+//				if(agentIDs[a].isHelping != null) {
+//					if(agentIDs[a].isHelping.getsHelp != agentIDs[a]) {
+//						System.err.println("ERROR :"+agentIDs[a]+"is helping "+agentIDs[a].isHelping+ " who gets help from"+
+//								agentIDs[a].isHelping.getsHelp);
+//						System.exit(0);
+//					}
+//				}
 				System.err.println("Currently " + agentIDs[a] + " is helping " + agentIDs[a].isHelping
 						+ " and gets help from " + agentIDs[a].getsHelp);
 
@@ -683,6 +698,12 @@ public class AIClient {
 									createOwnSolution(newInitialState, a);
 								}
 							}
+						} else if(goals[newInitialState.agentRow][newInitialState.agentCol] != null) {
+							//Don't stand on goal if done
+							ArrayList<Pos> positions = new ArrayList<>();
+							positions.add(new Pos(newInitialState.agentRow, newInitialState.agentCol));
+							newInitialState.requestedPositions = positions;
+							createOwnSolution(newInitialState, a);
 						}
 					}
 
@@ -1148,7 +1169,6 @@ public class AIClient {
 	
 			System.err.println("Agent " + helper +" may not be in the following positions: " + positions);
 			
-	
 			//Reverse action if getting too close
 			if(atOne) {
 				String act = actions[helper.getID()];
@@ -1169,7 +1189,9 @@ public class AIClient {
 			if (helper.isHelping != null) {
 				helper.isHelping.getsHelp = null;
 			}
-
+			if(inNeed.getsHelp != null) {
+				inNeed.getsHelp.isHelping = null;
+			}
 			helper.isHelping = inNeed;
 			inNeed.getsHelp = helper;
 
@@ -1245,6 +1267,7 @@ public class AIClient {
 			}
 			
 			inNeed.isHelping = helper;
+			
 			inNeed.getHelp = false;
 			helper.getHelp = true;
 
@@ -1264,7 +1287,8 @@ public class AIClient {
 			newInitialState.requestedPositions = positions;
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 			
-			plan = "Helping agent, by moving away from avoidlist";
+			plan = "Helping agent, by moving away from avoidlist "+positions;
+			if(positions.contains(new Pos(11,4))) System.exit(0);
 		}
 		
 		System.err.println("Agent " + helper + " found a new plan to help his friend");
