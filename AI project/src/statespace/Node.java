@@ -395,86 +395,102 @@ public class Node {
 	}
 	
 	public int calculateDistanceToGoal() {
-			int penalty = 0;
-			boolean stop = false;
-			
-			
-			// Don't move over another agent, another agents box or another agents goal
-			if(required != null) {
-				
-				Box box = client.getCurrentSubState().boxes[required.row][required.col];
-				Agent agent = client.getCurrentSubState().agents[required.row][required.col];
-				Goal goal = client.getGoals()[required.row][required.col];
-				
-				if (box != null && !box.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(required)))
-					penalty += 8;
-				
-				if (agent != null && agent != this.agent && !(goToGoal != null && AIClient.oneway(required)))
-					penalty += 5;
-				
-				if (goal != null && goals[required.row][required.col] == null && !(goToGoal != null && AIClient.oneway(required)))
-					penalty += 5;
-				
-				Pos aPos = new Pos(agentRow, agentCol);
-				if (!aPos.equals(required)) {					
+		int penalty = 0;
+		boolean stop = false;
+		
+		// If helping
+		Box requestedBox = null;
+		int requestedBoxH = Integer.MAX_VALUE;
+		if (requestedPositions != null) {
+			for (Pos p : requestedPositions) {
+				if (p != null) {
+					requestedBox = boxes[p.row][p.col];
 					
-					Box aBox = client.getCurrentSubState().boxes[agentRow][agentCol];
-					Agent aAgent = client.getCurrentSubState().agents[agentRow][agentCol];
-					Goal aGoal = client.getGoals()[agentRow][agentCol];
-					
-					if (aBox != null && !aBox.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(aPos)))
-						penalty += 5;
-					
-					if (aAgent != null && aAgent != this.agent && !(goToGoal != null && AIClient.oneway(aPos)))
-						penalty += 5;
-						
-					if (aGoal != null && goals[agentRow][agentCol] == null && !(goToGoal != null && AIClient.oneway(aPos)))
-						penalty += 5;
-					
+					if (requestedBox != null &&requestedBox.getColor() == agent.getColor()) {
+						requestedBoxH = Math.abs(p.row - agentRow) + Math.abs(p.col - agentCol) * 2; 
+						break;
+					}
 				}
 			}
+		}
+		
+		
+		// Don't move over another agent, another agents box or another agents goal
+		if(required != null) {
 			
-			// Add penalty moving a box out of its goal
-			for (int row = 1; row < client.getMaxRow() - 1; row++) {
-				for (int col = 1; col < client.getMaxCol() - 1; col++) {
+			Box box = client.getCurrentSubState().boxes[required.row][required.col];
+			Agent agent = client.getCurrentSubState().agents[required.row][required.col];
+			Goal goal = client.getGoals()[required.row][required.col];
+			
+			if (box != null && !box.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(required)))
+				penalty += 8;
+			
+			if (agent != null && agent != this.agent && !(goToGoal != null && AIClient.oneway(required)))
+				penalty += 5;
+			
+			if (goal != null && goals[required.row][required.col] == null && !(goToGoal != null && AIClient.oneway(required)))
+				penalty += 5;
+			
+			Pos aPos = new Pos(agentRow, agentCol);
+			if (!aPos.equals(required)) {					
+				
+				Box aBox = client.getCurrentSubState().boxes[agentRow][agentCol];
+				Agent aAgent = client.getCurrentSubState().agents[agentRow][agentCol];
+				Goal aGoal = client.getGoals()[agentRow][agentCol];
+				
+				if (aBox != null && !aBox.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(aPos)))
+					penalty += 5;
+				
+				if (aAgent != null && aAgent != this.agent && !(goToGoal != null && AIClient.oneway(aPos)))
+					penalty += 5;
 					
-					Box box = boxes[row][col];
-					Goal goal = goals[row][col];
-					
-					// If box is in its goal, subtract 5
-					if (box != null && box.goal != null && box.goal.equals(goal)) {
-						penalty -= 5;
-					
-					// If box is not in its goal, add 5
+				if (aGoal != null && goals[agentRow][agentCol] == null && !(goToGoal != null && AIClient.oneway(aPos)))
+					penalty += 5;
+				
+			}
+		}
+		
+		// Add penalty moving a box out of its goal
+		for (int row = 1; row < client.getMaxRow() - 1; row++) {
+			for (int col = 1; col < client.getMaxCol() - 1; col++) {
+				
+				Box box = boxes[row][col];
+				Goal goal = goals[row][col];
+				
+				// If box is in its goal, subtract 5
+				if (box != null && box.goal != null && box.goal.equals(goal)) {
+					penalty -= 5;
+				
+				// If box is not in its goal, add 5
 //					} else if (box != null) {
 //						penalty += 5;
+				}
+			}
+		}
+		
+		// Try to make the agent push a box instead of pulling
+		int distanceForBox = 0;
+		int distanceForAgent = 0;
+		if (goToBox != null && goToGoal != null) {
+			for (int row = 1; row < client.getMaxRow() - 1; row++) {
+				for (int col = 1; col < client.getMaxCol() - 1; col++) {
+					if (goToBox.equals(boxes[row][col])) {
+						distanceForBox = client.getDijkstraMap().get(goToGoal)[row][col];
 					}
 				}
 			}
+			distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
 			
-			// Try to make the agent push a box instead of pulling
-			int distanceForBox = 0;
-			int distanceForAgent = 0;
-			if (goToBox != null && goToGoal != null) {
-				for (int row = 1; row < client.getMaxRow() - 1; row++) {
-					for (int col = 1; col < client.getMaxCol() - 1; col++) {
-						if (goToBox.equals(boxes[row][col])) {
-							distanceForBox = client.getDijkstraMap().get(goToGoal)[row][col];
-						}
-					}
-				}
-				distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
+			if (distanceForAgent < distanceForBox)
+				penalty += 5;
+		}
+		
+		// If the agent is doing his own shit
+		if (goToBox != null) {
+			// If the agent is going for a box  
+			if (goTo) {
 				
-				if (distanceForAgent < distanceForBox)
-					penalty += 5;
-			}
-			
-			// If the agent is doing his own shit
-			if (goToBox != null) {
-				// If the agent is going for a box  
-				if (goTo) {
-					
-					return goToBox.getDijkstra()[agentRow][agentCol] * 2 + penalty;
+				return goToBox.getDijkstra()[agentRow][agentCol] * 2 + penalty;
 //					
 //					for (int row = 1; row < client.getMaxRow() - 1; row++) {
 //						for (int col = 1; col < client.getMaxCol() - 1; col++) {
@@ -485,30 +501,22 @@ public class Node {
 //						}
 //					}
 //				
-				// If the agent is moving a box to its goal
-				} else {
-					for (int row = 1; row < client.getMaxRow() - 1; row++) {
-						for (int col = 1; col < client.getMaxCol() - 1; col++) {
-							if (boxes[row][col] == goToBox) {
-								//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
-								return client.getDijkstraMap().get(goToGoal)[row][col] * 2 + penalty;
-							}
+			// If the agent is moving a box to its goal
+			} else {
+				for (int row = 1; row < client.getMaxRow() - 1; row++) {
+					for (int col = 1; col < client.getMaxCol() - 1; col++) {
+						if (boxes[row][col] == goToBox) {
+							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
+							return client.getDijkstraMap().get(goToGoal)[row][col] * 2 + penalty;
 						}
 					}
 				}
 			}
-			
-			if (requestedPositions != null) {
-				for (Pos p : requestedPositions) {
-					if (p != null) {
-						Box box = boxes[p.row][p.col];
-						
-						if (box != null && box.getColor() == agent.getColor())
-							return Math.abs(p.row - agentRow) + Math.abs(p.col - agentCol) * 2 + penalty;
-					}
-				}
-			}
-			
+		}
+		
+		if (requestedBox != null)
+			return requestedBoxH + penalty;
+		
 		return penalty;
 	}
 
