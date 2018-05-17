@@ -127,27 +127,27 @@ public class Node {
 		if (goToBox == null) return false;
 		
 		boolean success = false;
+		
 		if(goTo) {
-			if(agentRow > 0) {
+			
+			if (agentRow > 0)
 				success = goToBox == boxes[agentRow-1][agentCol];
-			} 
-			if(!success && agentRow < client.getMaxRow()-1) {
+			
+			if (agentRow < client.getMaxRow()-1)
 				success = goToBox == boxes[agentRow+1][agentCol];
-			}
-			if(!success && agentCol > 0) {
+			
+			if (agentCol > 0)
 				success = goToBox == boxes[agentRow][agentCol-1];
-			}
-			if(!success && agentCol < client.getMaxCol()-1) {
+			
+			if (agentCol < client.getMaxCol()-1)
 				success = goToBox == boxes[agentRow][agentCol+1];
-			}
+			
 		} else {
 			
 			for (int row = 1; row < client.getMaxRow() - 1; row++) {
 				for (int col = 1; col < client.getMaxCol() - 1; col++) {
 					if (boxes[row][col] == goToBox) {
-						//char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
-						//char b = Character.toLowerCase(goToBox.getLabel());
-						//return g == b;
+						
 						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col){
 							goToBox.goal = goToGoal;
 							goToBox.inWorkingProcess = false;
@@ -370,7 +370,6 @@ public class Node {
 	
 	public int calculateDistanceToGoal() {
 		int penalty = 0;
-		boolean stop = false;
 		
 		// If helping
 		Box requestedBox = null;
@@ -387,7 +386,6 @@ public class Node {
 				}
 			}
 		}
-		
 		
 		// Don't move over another agent, another agents box or another agents goal
 		if(required != null) {
@@ -432,13 +430,10 @@ public class Node {
 				Goal goal = goals[row][col];
 				
 				// If box is in its goal, subtract 5
-				if (box != null && box.goal != null && box.goal.equals(goal)) {
+				if (AIClient.agentCounter == 1 && box != null && box.goal != null && box.goal.equals(goal))
+					penalty -= 1000;
+				else if (box != null && box.goal != null && box.goal.equals(goal))
 					penalty -= 5;
-				
-				// If box is not in its goal, add 5
-//					} else if (box != null) {
-//						penalty += 5;
-				}
 			}
 		}
 		
@@ -456,7 +451,7 @@ public class Node {
 			distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
 			
 			if (distanceForAgent < distanceForBox)
-				penalty += 5;
+				penalty += 10;
 		}
 		
 		// If the agent is doing his own shit

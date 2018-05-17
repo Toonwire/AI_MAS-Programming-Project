@@ -203,41 +203,41 @@ public class Agent {
 		
 		ArrayList<Goal> used = new ArrayList<Goal>();
 		
-//		int priorityIndexReached = -1;
-//		for (int i = 0; i < client.getGoalPriorityList().size(); i++) {
-//			for (int j = 0; j < client.getGoalPriorityList().get(i).size(); j++) {
-//				Goal goal = client.getGoalPriorityList().get(i).get(j);
-////				System.err.println(goal);
-//				boolean boxFound = false;
-//				for (Box someBox : reachableBoxes) {
-////					if (someBox.goal != null) {						
-////						System.err.println(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col]);
-////						System.err.println(someBox.getPos());
-////					}
-////					
-////					System.err.println(someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])));
-////					System.err.println(Character.toLowerCase(someBox.getLabel()) == goal.getLabel());
-//					
-//					if ((someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])) && Character.toLowerCase(someBox.getLabel()) == goal.getLabel())) {
-////						System.err.println(123);
-//						boxFound = true;
-//						break;
+		int priorityIndexReached = -1;
+		for (int i = 0; i < client.getGoalPriorityList().size(); i++) {
+			for (int j = 0; j < client.getGoalPriorityList().get(i).size(); j++) {
+				Goal goal = client.getGoalPriorityList().get(i).get(j);
+//				System.err.println(goal);
+				boolean boxFound = false;
+				for (Box someBox : reachableBoxes) {
+//					if (someBox.goal != null) {						
+//						System.err.println(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col]);
+//						System.err.println(someBox.getPos());
 //					}
-//				}
-//				
-//				// Check if a box is on top of the goal - and if this box match the goals label
-//				Box maybeBox = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
-//				
-//				if (reachableGoals.contains(goal) && boxFound && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel()) && !goalIsBlocking(goal, i)) {
-//					priorityIndexReached = i;
-//					break;
-//				}
-//			}
-//			if (priorityIndexReached >= 0) break;
-//		}
-//		
-//		if (priorityIndexReached == -1 )
-//			return list;
+//					
+//					System.err.println(someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])));
+//					System.err.println(Character.toLowerCase(someBox.getLabel()) == goal.getLabel());
+					
+					if ((someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])) && Character.toLowerCase(someBox.getLabel()) == goal.getLabel())) {
+//						System.err.println(123);
+						boxFound = true;
+						break;
+					}
+				}
+				
+				// Check if a box is on top of the goal - and if this box match the goals label
+				Box maybeBox = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
+				
+				if (reachableGoals.contains(goal) && boxFound && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel()) && !goalIsBlocking(goal, i)) {
+					priorityIndexReached = i;
+					break;
+				}
+			}
+			if (priorityIndexReached >= 0) break;
+		}
+		
+		if (priorityIndexReached == -1 )
+			return list;
 			
 		for (int row = 1; row < client.getMaxRow() - 1; row++) {
 			for (int col = 1; col < client.getMaxCol() - 1; col++) {
@@ -263,8 +263,8 @@ public class Agent {
 							 for (Goal goal : goals) {
 								 Box maybeBox = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
 							
-								 if (reachableGoals.contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
-//							     if (reachableGoals.contains(goal) && client.getGoalPriorityList().get(priorityIndexReached).contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
+//								 if (reachableGoals.contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
+							     if (reachableGoals.contains(goal) && client.getGoalPriorityList().get(priorityIndexReached).contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
 //								 if (reachableGoals.contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
 //								 if (reachableGoals.contains(goal) && client.getGoalPriorityList().get(priorityIndexReached).contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel()) && !used.contains(goal)) {
 									 priority = goal.priority;
