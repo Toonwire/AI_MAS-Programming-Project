@@ -1411,6 +1411,8 @@ public class AIClient {
 	}
 
 	private static void resetAgents() {
+		System.err.println("--------- RESET AGENTS ----------- ");
+		
 		for (Agent a : agentOrder) {			
 			a.getHelp = true;
 			a.getsHelp = null;
@@ -1447,7 +1449,7 @@ public class AIClient {
 	}
 	
 	private static void resetAgent(int i) throws IOException {
-		System.err.println("--------- RESET SOLUTIONS ----------- ");
+		System.err.println("--------- RESET AGENT ----------- ");
 		System.err.println("Agent " + i + " resets its solution");
 
 		Agent a = agentIDs[i];
@@ -1585,37 +1587,11 @@ public class AIClient {
 				return "NoOp";
 			}
 			
-//			If agent is helping another agent who needs the same cell
-//			if(agentIDs[a].isHelping != null && agentIDs[a].isHelping != agentIDs[a].getsHelp) {
-//				ArrayList<Node> helpingSol = solutions[agentIDs[a].isHelping.getID()];
-//				if(helpingSol != null && !helpingSol.isEmpty()
-//						&& (helpingSol.size() < 2 || !helpingSol.get(1).getRequired().equals(currentStates[a].getRequired()))) {
-//					if(helpingSol.get(0).getRequired().equals(p)) {
-//						System.err.println("NO OP 2a: " + node.action.toString());
-//						return "NoOp";
-////					} else if(helpingSol.size() > 1) {
-////						if(helpingSol.get(1).getRequired().equals(p)) {
-////							System.err.println("NO OP 2b: " + node.action.toString());
-////							return "NoOp";
-////						}	
-//					}
-//				}
-//			}
-
-			System.err.println("Agent " + a + " has goToBox: " + currentStates[a].goToBox + ":" + (currentStates[a].goToBox != null ? currentStates[a].goToBox.pos : ""));
-			System.err.println("Agent " + a + " has goToGoal: " + currentStates[a].goToGoal + ":" + (currentStates[a].goToGoal != null ? currentStates[a].goToGoal.getPos() : ""));
-
+			// Check if some other agent moved the box you are going for
 			if (currentStates[a].goToBox != null) {
 				for (int row = 1; row < MAX_ROW - 1; row++) {
 					for (int col = 1; col < MAX_COL - 1; col++) {
-						if (currentStates[a].boxes[row][col] == currentStates[a].goToBox && state.boxes[row][col] != currentStates[a].goToBox) {
-							// System.err.println(state);
-							// System.err.println(currentStates[a]);
-							
-//							System.err.println("Agent " + a + " cannot move the box - the box has been moved");
-//							System.err.println("ROW: " + row + ", COL: " + col + " ???: " + currentStates[a].boxes[row][col]);
-//							System.err.println("BOX TO MOVE " + currentStates[a].goToBox + ":" + currentStates[a].goToBox.pos);
-							
+						if (currentStates[a].boxes[row][col] == currentStates[a].goToBox && state.boxes[row][col] != currentStates[a].goToBox) {							
 							resetAgent(a);
 
 							return "NoOp";
