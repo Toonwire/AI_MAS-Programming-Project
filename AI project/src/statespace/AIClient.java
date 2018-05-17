@@ -761,7 +761,7 @@ public class AIClient {
 //						}
 //					}
 				}
-				System.err.println("THIS IS THE CURRENT STATE LALSLDASDLLASDLASLDLASLDALSDLASLDLASD");
+				System.err.println("This is the current state for agent " + a);
 				System.err.println(currentStates[a]);
 				reachedAgent++;
 			}
@@ -863,24 +863,29 @@ public class AIClient {
 					System.out.println(act);
 					System.err.println(act);
 					System.err.println(state);
+					
+					String response = serverMessages.readLine();
+					if (response.contains("false")) {
+						System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
+						System.err.format("%s was attempted in \n%s\n", act, state.toString());
+						break;
 					}
+
+				}
 			}
-//		}
 		// OUT OF WHILE LOOP
 
-		// System.err.println("OUTSIDE: \n"+combinedSolution);
-
-//		System.err.println("Final solution is of length: " + actionList.size());
-//		 for(String act : actionList) {
-//			 System.err.println(act);
-//			 System.out.println(act);
-//			 String response = serverMessages.readLine();
-//			 if (response.contains("false")) {
-//				 System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
-//				 System.err.format("%s was attempted in \n%s\n", act, state.toString());
-//				 break;
-//			 }
-//		 }
+		System.err.println("Final solution is of length: " + actionList.size());
+//		for(String act : actionList) {
+//			System.err.println(act);
+//			System.out.println(act);
+//			String response = serverMessages.readLine();
+//			if (response.contains("false")) {
+//				System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
+//				System.err.format("%s was attempted in \n%s\n", act, state.toString());
+//				break;
+//			}
+//		}
 		 
 	}
 

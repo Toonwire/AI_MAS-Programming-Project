@@ -534,5 +534,11 @@ public class Node {
 				}
 			}	
 		}
+		
+		for (Box b : this.agent.reachableBoxes)
+			if (b.goal != null)
+				if (!b.getPos().equals(b.goal.getPos()))
+					b.goal = null;
+
 	}
 }
