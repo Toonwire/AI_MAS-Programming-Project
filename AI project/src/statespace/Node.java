@@ -133,13 +133,13 @@ public class Node {
 			if (agentRow > 0)
 				success = goToBox == boxes[agentRow-1][agentCol];
 			
-			if (agentRow < client.getMaxRow()-1)
+			if (!success && agentRow < client.getMaxRow()-1)
 				success = goToBox == boxes[agentRow+1][agentCol];
 			
-			if (agentCol > 0)
+			if (!success && agentCol > 0)
 				success = goToBox == boxes[agentRow][agentCol-1];
 			
-			if (agentCol < client.getMaxCol()-1)
+			if (!success && agentCol < client.getMaxCol()-1)
 				success = goToBox == boxes[agentRow][agentCol+1];
 			
 		} else {
@@ -394,31 +394,43 @@ public class Node {
 			Agent agent = client.getCurrentSubState().agents[required.row][required.col];
 			Goal goal = client.getGoals()[required.row][required.col];
 			
-			if (box != null && !box.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(required)))
-				penalty += 8;
-			
-			if (agent != null && agent != this.agent && !(goToGoal != null && AIClient.oneway(required)))
-				penalty += 5;
-			
-			if (goal != null && goals[required.row][required.col] == null && !(goToGoal != null && AIClient.oneway(required)))
-				penalty += 5;
+			// If in an alley, no penalty is added
+			if (!(goToGoal != null && AIClient.oneway(required))) {
+
+				// If you try to go through some box - that is not your own
+				if (box != null && !box.getColor().equals(this.agent.getColor()))
+					penalty += 8;
+				
+				// If you try to go through another agent
+				if (agent != null && agent != this.agent)
+					penalty += 5;
+				
+				// If you try to go through another agents goal
+				if (goal != null && goals[required.row][required.col] == null)
+					penalty += 5;
+			}
 			
 			Pos aPos = new Pos(agentRow, agentCol);
-			if (!aPos.equals(required)) {					
+			
+			// If agent position differ from required position (i.e. pushing)
+			// And you are not in an alley
+			if (!aPos.equals(required) && !(goToGoal != null && AIClient.oneway(aPos))) {					
 				
 				Box aBox = client.getCurrentSubState().boxes[agentRow][agentCol];
 				Agent aAgent = client.getCurrentSubState().agents[agentRow][agentCol];
 				Goal aGoal = client.getGoals()[agentRow][agentCol];
 				
-				if (aBox != null && !aBox.getColor().equals(this.agent.getColor()) && !(goToGoal != null && AIClient.oneway(aPos)))
+				// If you try to go through some box - that is not your own
+				if (aBox != null && !aBox.getColor().equals(this.agent.getColor()))
 					penalty += 5;
 				
-				if (aAgent != null && aAgent != this.agent && !(goToGoal != null && AIClient.oneway(aPos)))
-					penalty += 5;
-					
-				if (aGoal != null && goals[agentRow][agentCol] == null && !(goToGoal != null && AIClient.oneway(aPos)))
+				// If you try to go through another agent
+				if (aAgent != null && aAgent != this.agent)
 					penalty += 5;
 				
+				// If you try to go through another agents goal
+				if (aGoal != null && goals[agentRow][agentCol] == null)
+					penalty += 5;
 			}
 		}
 		
@@ -451,31 +463,21 @@ public class Node {
 			distanceForAgent = client.getDijkstraMap().get(goToGoal)[agentRow][agentCol];
 			
 			if (distanceForAgent < distanceForBox)
-				penalty += 10;
+				penalty += 8;
 		}
 		
 		// If the agent is doing his own shit
 		if (goToBox != null) {
+			
 			// If the agent is going for a box  
-			if (goTo) {
-				
+			if (goTo) {	
 				return goToBox.getDijkstra()[agentRow][agentCol] * 2 + penalty;
-//					
-//					for (int row = 1; row < client.getMaxRow() - 1; row++) {
-//						for (int col = 1; col < client.getMaxCol() - 1; col++) {
-//							if (boxes[row][col] == goToBox) {
-//								//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (Math.abs(row - agentRow) + Math.abs(col - agentCol) + penalty));
-//								return Math.abs(row - agentRow) + Math.abs(col - agentCol) * 2 + penalty;
-//							}
-//						}
-//					}
-//				
+
 			// If the agent is moving a box to its goal
 			} else {
 				for (int row = 1; row < client.getMaxRow() - 1; row++) {
 					for (int col = 1; col < client.getMaxCol() - 1; col++) {
 						if (boxes[row][col] == goToBox) {
-							//System.err.println("Agent placement: " + agentRow + "," + agentCol + "; Action: " + action + "; Points: " + (client.getDijkstraMap().get(goToGoal)[row][col] + penalty));
 							return client.getDijkstraMap().get(goToGoal)[row][col] * 2 + penalty;
 						}
 					}
@@ -483,6 +485,7 @@ public class Node {
 			}
 		}
 		
+		// If helping another agent and have to move some box
 		if (requestedBox != null)
 			return requestedBoxH + penalty;
 		
