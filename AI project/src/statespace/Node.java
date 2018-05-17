@@ -148,8 +148,7 @@ public class Node {
 						//char g = goals[row][col] != null ? goals[row][col].getLabel() : 0;
 						//char b = Character.toLowerCase(goToBox.getLabel());
 						//return g == b;
-						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col)
-						{
+						if (goToGoal.getPos().row == row && goToGoal.getPos().col == col){
 							goToBox.goal = goToGoal;
 							goToBox.inWorkingProcess = false;
 							goToGoal.inWorkingProcess = false;
@@ -273,8 +272,7 @@ public class Node {
 		if (agent.isHelping != null) {
 			node = client.getCurrentState(agent.isHelping.getID());	
 		}
-		
-		return (boxes[pos.row][pos.col] == null || boxes[pos.row][pos.col]  == node.goToBox) && !(agentRow == pos.row && agentCol == pos.col);
+		return (boxes[pos.row][pos.col] == null || node == null || boxes[pos.row][pos.col] == node.goToBox) && !(agentRow == pos.row && agentCol == pos.col);
 	}
 	private boolean boxAt(int row, int col) {
 		return this.boxes[row][col] != null;
@@ -292,11 +290,38 @@ public class Node {
 		copy.goToGoal = goToGoal;
 		copy.agentGoal = agentGoal;
 		copy.g = g + 1;
+
+//		if(goToBox != null) {
+//			if(agentRow-1 > 0) {
+//				checkAround(agentRow-1,agentCol, copy);
+//			}
+//			if(agentRow+1 < client.getMaxRow()) {
+//				checkAround(agentRow+1,agentCol, copy);
+//			}
+//			if(agentCol-1 > 0) {
+//				checkAround(agentRow,agentCol-1, copy);
+//			}
+//			if(agentCol+1 < client.getMaxCol()) {
+//				checkAround(agentRow,agentCol+1, copy);
+//			}
+//		}
 		
 		for (int row = 0; row < client.getMaxRow(); row++) {
 			System.arraycopy(this.boxes[row], 0, copy.boxes[row], 0, client.getMaxCol());
 		}
 		return copy;
+	}
+
+	private void checkAround(int r, int c, Node copy) {
+		Goal g = client.getGoals()[r][c];
+		Box b = client.getCurrentState().boxes[r][c];
+		//Box is correct and can be taken
+		if(b != null && (g == null || Character.toLowerCase(b.getLabel()) != g.getLabel()) && !b.inWorkingProcess) {
+			if (b != null && b.getLabel() == goToBox.getLabel()) { //found closer box 
+				System.err.println("goToBox changed to "+r+","+c);
+				copy.goToBox = b;
+			}
+		}
 	}
 
 	public ArrayList<Node> extractPlan() {
