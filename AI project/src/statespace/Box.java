@@ -9,10 +9,7 @@ public class Box extends Element {
 	private Pos dijkstraPos;
 	private Integer[][] dijkstra;
 	
-	public Pos pos; // Only for initial position!!!
-	
-	// dijkstra array stuff
-	// pos for last update of dijkstra
+	public Pos pos; // Only for initial position after updates!!!
 	
 	public Goal goal;
 	

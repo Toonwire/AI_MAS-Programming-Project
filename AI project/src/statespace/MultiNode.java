@@ -30,7 +30,6 @@ public class MultiNode {
 	}
 
 	public MultiNode(MultiNode parent, int i, Command command) {
-//		System.err.println(command.toString()+ " IN "+parent);
 		client = parent.client;
 		boxes = new Box[client.getMaxRow()][client.getMaxCol()];
 		agents = new Agent[client.getMaxRow()][client.getMaxCol()];
@@ -74,9 +73,6 @@ public class MultiNode {
 	public String toString() {
 		StringBuilder s = new StringBuilder();
 		for (int row = 0; row < client.getMaxRow(); row++) {
-//			if (!client.getWalls()[row][0]) {
-//				break;
-//			}
 			for (int col = 0; col < client.getMaxCol(); col++) {
 				if (boxes[row][col] != null) {
 					s.append(this.boxes[row][col]);

@@ -21,8 +21,4 @@ public class Goal extends Element {
 	public String toString() {
 		return "" + label;
 	}
-	
-//	public int getDistanceToGoal(Point p) {
-//		return Math.abs(p.x - pos.row) + Math.abs(p.y - pos.col);
-//	}
 }

@@ -511,7 +511,6 @@ public class Node {
 				if(b != null && agent.getReachableBoxes().contains(b)) {
 					boxes[row][col] = b;
 					b.updatePos(row,col);
-					System.err.println("UPDATE NEW BOX TO "+row+", "+col);
 				}
 			}	
 		}

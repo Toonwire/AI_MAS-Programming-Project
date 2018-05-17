@@ -25,8 +25,6 @@ public class Agent {
 		this.client = client;
 		reachableBoxes = new ArrayList<>();
 		reachableGoals = new ArrayList<>();
-		System.err.println("Found " + color + " agent " + id);
-		System.err.println(reachableGoals);
 	}
 
 	public String act() {
@@ -201,25 +199,15 @@ public class Agent {
 		ArrayList<Integer> priorityCount = new ArrayList<Integer>();
 		ArrayList<Integer> distanceCount = new ArrayList<Integer>();
 		
-		ArrayList<Goal> used = new ArrayList<Goal>();
-		
 		int priorityIndexReached = -1;
 		for (int i = 0; i < client.getGoalPriorityList().size(); i++) {
 			for (int j = 0; j < client.getGoalPriorityList().get(i).size(); j++) {
 				Goal goal = client.getGoalPriorityList().get(i).get(j);
-//				System.err.println(goal);
+				
 				boolean boxFound = false;
 				for (Box someBox : reachableBoxes) {
-//					if (someBox.goal != null) {						
-//						System.err.println(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col]);
-//						System.err.println(someBox.getPos());
-//					}
-//					
-//					System.err.println(someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])));
-//					System.err.println(Character.toLowerCase(someBox.getLabel()) == goal.getLabel());
 					
 					if ((someBox.goal == null || (someBox.goal != null && !someBox.equals(client.getCurrentSubState().boxes[someBox.goal.getPos().row][someBox.goal.getPos().col])) && Character.toLowerCase(someBox.getLabel()) == goal.getLabel())) {
-//						System.err.println(123);
 						boxFound = true;
 						break;
 					}
@@ -263,15 +251,10 @@ public class Agent {
 							 for (Goal goal : goals) {
 								 Box maybeBox = client.getCurrentSubState().boxes[goal.getPos().row][goal.getPos().col];
 							
-//								 if (reachableGoals.contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
 							     if (reachableGoals.contains(goal) && client.getGoalPriorityList().get(priorityIndexReached).contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
-//								 if (reachableGoals.contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel())) {
-//								 if (reachableGoals.contains(goal) && client.getGoalPriorityList().get(priorityIndexReached).contains(goal) && goal.priority < priority && (maybeBox == null || Character.toLowerCase(maybeBox.getLabel()) != goal.getLabel()) && !used.contains(goal)) {
 									 priority = goal.priority;
 									 boxReady = true;
-									 
-									 //used.add(goal);
-									 
+									 									 
 									 Integer[][] dijkstra = client.getDijkstraMap().get(goal);
 									 if (dijkstra[row][col] < distance)
 										 distance = dijkstra[row][col];
@@ -318,7 +301,6 @@ public class Agent {
 				}
 			}
 		}
-		System.err.println(list);
 		return list;
 	}
 }
