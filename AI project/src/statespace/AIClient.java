@@ -814,17 +814,17 @@ public class AIClient {
 				deadlockLimit = 0;
 				System.err.println("Execute actions");
 
-//				if(combinedSolution.contains(state)) {
-//					while(true){
-//						System.err.println(Arrays.deepToString(actions));
-//						MultiNode current = combinedSolution.get(combinedSolution.size()-1);
-//						if(current.equals(state)) { 
-//							break;
-//						}
-//						combinedSolution.remove(current);
-//						actionList.remove(actionList.size()-1);
-//					}
-//				} else {
+				if(combinedSolution.contains(state)) {
+					while(true){
+						System.err.println(Arrays.deepToString(actions));
+						MultiNode current = combinedSolution.get(combinedSolution.size()-1);
+						if(current.equals(state)) { 
+							break;
+						}
+						combinedSolution.remove(current);
+						actionList.remove(actionList.size()-1);
+					}
+				} else {
 					// Add state to the combined solution, since the iteration is done
 					combinedSolution.add(state);
 
@@ -868,32 +868,33 @@ public class AIClient {
 					act += "]";
 					actionList.add(act);
 					
-					System.out.println(act);
-					System.err.println(act);
-					System.err.println(state);
-					
-					String response = serverMessages.readLine();
-					if (response.contains("false")) {
-						System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
-						System.err.format("%s was attempted in \n%s\n", act, state.toString());
-						break;
-					}
+//					System.out.println(act);
+//					System.err.println(act);
+//					System.err.println(state);
+
+//					String response = serverMessages.readLine();
+//					if (response.contains("false")) {
+//						System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
+//						System.err.format("%s was attempted in \n%s\n", act, state.toString());
+//						break;
+//					}
 
 				}
 			}
+		}
 		// OUT OF WHILE LOOP
 
 		System.err.println("Final solution is of length: " + actionList.size());
-//		for(String act : actionList) {
-//			System.err.println(act);
-//			System.out.println(act);
-//			String response = serverMessages.readLine();
-//			if (response.contains("false")) {
-//				System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
-//				System.err.format("%s was attempted in \n%s\n", act, state.toString());
-//				break;
-//			}
-//		}
+		for(String act : actionList) {
+			System.err.println(act);
+			System.out.println(act);
+			String response = serverMessages.readLine();
+			if (response.contains("false")) {
+				System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
+				System.err.format("%s was attempted in \n%s\n", act, state.toString());
+				break;
+			}
+		}
 		 
 	}
 
