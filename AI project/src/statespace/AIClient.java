@@ -610,7 +610,6 @@ public class AIClient {
 		}
 
 		while (true) {
-			boolean stop = false;
 			actions = new String[agentCounter];
 			boolean done = true;
 			System.err.println("\n---------- NEXT STATE -------------");
@@ -620,23 +619,7 @@ public class AIClient {
 			reachedAgent = 0;
 			while (reachedAgent < agentOrder.size()) {
 				int a = agentOrder.get(reachedAgent).getID();
-//				//TEST
-//				if(agentIDs[a].getsHelp != null) {
-//					if(agentIDs[a].getsHelp.isHelping != agentIDs[a]) {
-//						System.err.println("ERROR :"+agentIDs[a]+"gets help from "+agentIDs[a].getsHelp+ " who is helping"+
-//								agentIDs[a].getsHelp.isHelping);
-//						System.exit(0);
-//					}
-//				}
-//				if(agentIDs[a].isHelping != null) {
-//					if(agentIDs[a].isHelping.getsHelp != agentIDs[a]) {
-//						System.err.println("ERROR :"+agentIDs[a]+"is helping "+agentIDs[a].isHelping+ " who gets help from"+
-//								agentIDs[a].isHelping.getsHelp);
-//						System.exit(0);
-//					}
-//				}
-				System.err.println("Currently " + agentIDs[a] + " is helping " + agentIDs[a].isHelping
-						+ " and gets help from " + agentIDs[a].getsHelp);
+				System.err.println("Currently " + agentIDs[a] + " is helping " + agentIDs[a].isHelping + " and gets help from " + agentIDs[a].getsHelp);
 
 				if (actions[a] == null) { // no action yet
 					System.err.println("Agent: " + a + " turn at " + reachedAgent + " in order");
@@ -739,9 +722,6 @@ public class AIClient {
 				System.err.println(currentStates[a]);
 				reachedAgent++;
 			}
-			if (stop) {
-				break;
-			}
 
 			// OUT OF INNER LOOP
 			boolean execute = true;
@@ -783,90 +763,81 @@ public class AIClient {
 				deadlockLimit = 0;
 				System.err.println("Execute actions");
 
-				// Add state to the combined solution, since the iteration is done
-				combinedSolution.add(state);
+//				if(combinedSolution.contains(state)) {
+//					while(true){
+//						System.err.println(Arrays.deepToString(actions));
+//						MultiNode current = combinedSolution.get(combinedSolution.size()-1);
+//						if(current.equals(state)) { 
+//							break;
+//						}
+//						combinedSolution.remove(current);
+//						actionList.remove(actionList.size()-1);
+//					}
+//				} else {
+					// Add state to the combined solution, since the iteration is done
+					combinedSolution.add(state);
 
-				// Completed the final goals
-				// If so, release any helpers locked to this agent
-				for (Agent a : agentIDs) {
-					if (currentStates[a.getID()].isRealGoalState()) {
+					// Completed the final goals
+					// If so, release any helpers locked to this agent
+					for (Agent a : agentIDs) {
+						if (currentStates[a.getID()].isRealGoalState()) {
 
-						boolean goalButHelping = false;
-						for (Agent b : agentIDs) {
+							boolean goalButHelping = false;
+							for (Agent b : agentIDs) {
 
-							if (a != b && b.getsHelp == a && a.getsHelp != b) {
-								goalButHelping = true;
+								if (a != b && b.getsHelp == a && a.getsHelp != b) {
+									goalButHelping = true;
+								}
 							}
+
+							System.err.println(currentStates[a.getID()] + "is a goal state");
+
+							if (a.getsHelp != null && !goalButHelping && a.isHelping == null) { // && a.getsHelp != a.isHelping) {
+
+								System.err.println(a + " done reset");
+								a.getsHelp.getHelp = true;
+								a.getsHelp.isHelping = null;
+								a.getsHelp = null;
+							}
+							System.err.println(a + " is done");
 						}
+					}
 
-						System.err.println(currentStates[a.getID()] + "is a goal state");
-
-						if (a.getsHelp != null && !goalButHelping && a.isHelping == null) { // && a.getsHelp !=
-																							// a.isHelping) {
-
-							System.err.println(a + " done reset");
-							a.getsHelp.getHelp = true;
-							a.getsHelp.isHelping = null;
-							a.getsHelp = null;
-							// stop = true;
+					// Create action string
+					String act;
+					act = "[";
+					for (int i = 0; i < actions.length; i++) {
+						act += actions[i];
+						if (i < actions.length - 1) {
+							act += ", ";
 						}
-						System.err.println(a + " is done");
 					}
+					act += "]";
+					actionList.add(act);
+					
+					System.out.println(act);
+					System.err.println(act);
+					System.err.println(state);
 				}
-
-				// Create action string
-				String act;
-				act = "[";
-				for (int i = 0; i < actions.length; i++) {
-					act += actions[i];
-					if (i < actions.length - 1) {
-						act += ", ";
-					}
-				}
-				act += "]";
-				actionList.add(act);
-
-				//////////////// TEST
-				// if(act.equals("[null,null]")) {
-				// System.err.println("NULL");
-				// break;
-				// }
-
-				System.out.println(act);
-				System.err.println(act);
-				System.err.println(state);
-				// for (int i = 0; i < currentStates.length; i++)
-				// System.err.println(currentStates[i]);
-
-				if (stop) {
-					break;
-				}
-				// String response = serverMessages.readLine();
-				// if (response.contains("false")) {
-				// System.err.format("Server responsed with %s to the inapplicable action:
-				// %s\n", response, act);
-				// System.err.format("%s was attempted in \n%s\n", act, state.toString());
-				// break;
-				// }
 			}
-		}
+//		}
 		// OUT OF WHILE LOOP
 
 		// System.err.println("OUTSIDE: \n"+combinedSolution);
 
-		// for(String act : actionList) {
-		// System.err.println(act);
-		// System.out.println(act);
-		// String response = serverMessages.readLine();
-		// if (response.contains("false")) {
-		// System.err.format("Server responsed with %s to the inapplicable action:
-		// %s\n", response, act);
-		// System.err.format("%s was attempted in \n%s\n", act, state.toString());
-		// break;
-		// }
-		// }
-		System.err.println("Final solution is of length: " + actionList.size());
-		// System.err.println(actionList);
+
+//		System.err.println("Final solution is of length: " + actionList.size());
+//		 for(String act : actionList) {
+//			 System.err.println(act);
+//			 System.out.println(act);
+//			 String response = serverMessages.readLine();
+//			 if (response.contains("false")) {
+//				 System.err.format("Server responsed with %s to the inapplicable action: %s\n", response, act);
+//				 System.err.format("%s was attempted in \n%s\n", act, state.toString());
+//				 break;
+//			 }
+//		 }
+		 
 	}
 
 	private static void setUpOwnSolution(Node newInitialState, int a) {
@@ -1001,11 +972,7 @@ public class AIClient {
 			// IF helper is not getting help at all
 			// AND current agent is not helping the helper
 			// CONCLUSION the helper is not getting help
-			if (helper.getsHelp != inNeed && (helper.getsHelp == null || actions[helper.getsHelp.getID()] == null)) {// &&
-																														// inNeed.isHelping
-																														// !=
-																														// helper)
-																														// {
+			if (helper.getsHelp != inNeed && (helper.getsHelp == null || actions[helper.getsHelp.getID()] == null)) {// && inNeed.isHelping != helper) {
 				System.err.println(helper.getID() + " may help " + inNeed.getID());
 				if (aAction == null) { // available helper later
 					System.err.println("CASE 1");
@@ -1015,8 +982,7 @@ public class AIClient {
 					System.err.println("CASE 2");
 					agentOrder.remove(helper);
 					agentOrder.add(agentOrder.indexOf(inNeed) + 1, helper);
-				} else if (inNeed.isHelping == null) { // available helper before getting help while current can be
-														// moved
+				} else if (inNeed.isHelping == null) { // available helper before getting help while current can be moved
 					System.err.println("CASE 3 (MAY REMOVE)");
 					agentOrder.remove(inNeed);
 					agentOrder.add(agentOrder.indexOf(helper), inNeed);
@@ -1462,13 +1428,30 @@ public class AIClient {
 																						// current state
 					|| (!combinedSolution.get(combinedSolution.size() - 1).isEmpty(p)
 							&& combinedSolution.get(combinedSolution.size() - 1).agents[p.row][p.col] != node.getAgent())) { // conflict with
-																										// beginning of
-																										// state
+																										// beginning of state
 
 				System.err.println("NO OP 1: " + node.action.toString());
 
 				return "NoOp";
 			}
+			
+//			If agent is helping another agent who needs the same cell
+//			if(agentIDs[a].isHelping != null && agentIDs[a].isHelping != agentIDs[a].getsHelp) {
+//				ArrayList<Node> helpingSol = solutions[agentIDs[a].isHelping.getID()];
+//				if(helpingSol != null && !helpingSol.isEmpty()
+//						&& (helpingSol.size() < 2 || !helpingSol.get(1).getRequired().equals(currentStates[a].getRequired()))) {
+//					if(helpingSol.get(0).getRequired().equals(p)) {
+//						System.err.println("NO OP 2a: " + node.action.toString());
+//						return "NoOp";
+////					} else if(helpingSol.size() > 1) {
+////						if(helpingSol.get(1).getRequired().equals(p)) {
+////							System.err.println("NO OP 2b: " + node.action.toString());
+////							return "NoOp";
+////						}	
+//					}
+//				}
+//			}
+
 			
 			//(node.action.actionType == Command.Type.Push || node.action.actionType == Command.Type.Pull) &&
 			System.err.println("Agent " + a + " has goToBox: " + currentStates[a].goToBox + ":" + (currentStates[a].goToBox != null ? currentStates[a].goToBox.pos : ""));
@@ -1565,21 +1548,14 @@ public class AIClient {
 			}
 
 			// Can execute
-			System.err.println("*************CHANGE STATE*************");
 			state = new MultiNode(state, a, node.action);
 
 			// node.action.toString();
 			requests[a][0] = currentStates[a].getRequired();
-			
-			if (a == 1)
-				System.err.println("old current state:------------------------------------ \n" + currentStates[a]);
-			
+
 			backupStates[a] = currentStates[a];
 			currentStates[a] = node;
 
-			if (a == 1)
-				System.err.println("new current state:------------------------------------ \n" + currentStates[a]);
-			
 			System.err.println("state: " + state);
 			solutions[a].remove(0);
 			updateRequirements(solutions[a], a);
@@ -1606,33 +1582,6 @@ public class AIClient {
 				}
 			}
 		}
-			
-//		if(solution != null) {
-//			requests[a][1] = null;
-//			requests[a][2] = null;
-//			requests[a][3] = null;
-//			requests[a][4] = null;
-//			requests[a][5] = null;
-//			requests[a][6] = null;
-//
-//			if (!solution.isEmpty()) {
-//				requests[a][1] = solution.get(0).getRequired();
-//				if (solution.size() > 1) {
-//					requests[a][2] = solution.get(1).getRequired();
-//					if (solution.size() > 2) {
-//						requests[a][3] = solution.get(2).getRequired();
-//						if (solution.size() > 3) {
-//							requests[a][4] = solution.get(3).getRequired();
-//							if (solution.size() > 4) {
-//								requests[a][5] = solution.get(4).getRequired();
-//								if (solution.size() > 5) {
-//									requests[a][6] = solution.get(5).getRequired();
-//								}
-//							}
-//						}
-//					}
-//				}
-//			}
 	}
 
 	private static ArrayList<Node> createSolution(Strategy strategy, AIClient client, Node initialState) throws IOException {

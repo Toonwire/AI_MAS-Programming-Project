@@ -6,8 +6,6 @@ public class Goal extends Element {
 		
 	public boolean inWorkingProcess = false;
 
-	public Alley alley;
-
 	public int priority;
 	
 	public Goal(char label, Pos pos) {
