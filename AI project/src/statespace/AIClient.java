@@ -592,9 +592,6 @@ public class AIClient {
 	
 				if (solution != null) {
 					solutions[a.getID()] = solution;
-	
-					updateRequirements(solution, a.getID());
-					
 				} else {
 					initialState.goToBox.inWorkingProcess = false;
 					initialState.goToBox = null;
@@ -764,7 +761,7 @@ public class AIClient {
 								if (a != b && b.getsHelp == a && a.getsHelp != b)
 									goalButHelping = true;
 							
-							if (a.getsHelp != null && !goalButHelping && a.isHelping == null) { // && a.getsHelp != a.isHelping) {
+							if (a.getsHelp != null && !goalButHelping && a.isHelping == null) {
 
 								a.getsHelp.getHelp = true;
 								a.getsHelp.isHelping = null;
@@ -801,7 +798,6 @@ public class AIClient {
 				break;
 			}
 		}
-		 
 	}
 
 	private static void setUpOwnSolution(Node newInitialState, int a) {
@@ -848,7 +844,6 @@ public class AIClient {
 		if (solution != null) {
 			solutions[a] = solution;
 			currentStates[a] = newInitialState;
-			updateRequirements(solutions[a], a);
 		} else {
 			if (newInitialState.goToBox != null) 
 				newInitialState.goToBox.inWorkingProcess = false;
@@ -858,39 +853,61 @@ public class AIClient {
 	}
 
 	private static void getHelp(int i, int a1, Node node) throws IOException {
-		Pos p1 = requests[a1][1];
-		Pos p2 = requests[a1][2];
+		
+		ArrayList<Pos> positions = new ArrayList<>();
+		
+		// Add all the solutions required positions
+		for(int j = 0; j < solutions[a1].size(); j++) {
+			Node n = solutions[a1].get(j);
+			
+			Pos aPos = new Pos(n.agentRow, n.agentCol);
+			if (!positions.contains(aPos)) {
+				positions.add(aPos);
+				
+				// Check if agent pos differ from required (I.e. push)
+				if (!(aPos.equals(n.getRequired()) && !positions.contains(n.getRequired())))
+					positions.add(n.getRequired());
+			}
+			
+			// Break if we are out of the alley (one way)
+			if (!oneway(n.getRequired()) && j > 1)
+				break;
+		}
 		
 		boolean atOne = true;
 
 		Agent inNeed = agentIDs[a1];
-		
+
 		// Get helping agent
 		Agent helper = null;
 		Box b = null;
 		String aAction = null;
-		if (p1 != null) {
-			helper = state.agents[p1.row][p1.col];
-			b = state.boxes[p1.row][p1.col];
-			if (helper == null && b == null && p2 != null) {
-				helper = state.agents[p2.row][p2.col];
-				b = state.boxes[p2.row][p2.col];
-				atOne = false;
+		
+		for (int j = 0; j < positions.size(); j++) {
+			Pos p = positions.get(j);
+			
+			helper = state.agents[p.row][p.col];
+			b = state.boxes[p.row][p.col];
+			
+			if (helper != null || (b != null && !inNeed.reachableBoxes.contains(b))) {
+				if (j == 0)
+					atOne = false;
+				break;
 			}
-
-			if (helper == null && b != null && !inNeed.reachableBoxes.contains(b)) {
-				for (int j = 0; j < agentOrder.size(); j++) {
-					if (agentOrder.get(j).reachableBoxes.contains(b)) {
-						helper = agentOrder.get(j);
-						aAction = actions[helper.getID()];
-						if (aAction == null) {
-							break;
-						}
+		}
+		
+		if (helper == null && b != null && !inNeed.reachableBoxes.contains(b)) {
+			for (int j = 0; j < agentOrder.size(); j++) {
+				if (agentOrder.get(j).reachableBoxes.contains(b)) {
+					helper = agentOrder.get(j);
+					aAction = actions[helper.getID()];
+					if (aAction == null) {
+						break;
 					}
 				}
 			}
 		}
-
+		
 		// IF helper is not null
 		// AND helper is not current agent (inNeed)
 		// AND
@@ -898,7 +915,6 @@ public class AIClient {
 		// OR helper is already helping the current agent
 		// OR the one the helper is helping has no actions
 		// CONCLUSION, the helper can help the current agent
-
 		if (!((!inNeed.getHelp || inNeed.waiting > 1) && inNeed.isHelping == helper) && helper != inNeed && helper != null && (helper.isHelping == null || helper.isHelping == inNeed || actions[helper.isHelping.getID()] == null || actions[helper.isHelping.getID()] == "NoOp" || actions[helper.getID()] == null || actions[helper.getID()] == "NoOp")) {
 
 			// IF helper is not getting help at all
@@ -1041,8 +1057,9 @@ public class AIClient {
 				}
 				
 				// Break if we are out of the alley (one way)
-				if (!oneway(n.getRequired()) && i > 1)
+				if (!oneway(n.getRequired()) && i > 1) {
 					break;
+				}
 			}
 			
 			Node prevNode = currentStates[inNeed.getID()];
@@ -1097,8 +1114,9 @@ public class AIClient {
 
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 			
-			if (sol != null)
+			if (sol != null) {
 				currentStates[inNeed.getID()].help = helper;
+			}
 		}
 		
 		if(sol == null) {
@@ -1116,7 +1134,7 @@ public class AIClient {
 				actions[inNeed.getID()] = "NoOp";
 
 				solutions[inNeed.getID()].add(0, curState);
-			}	
+			}
 			
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
 			
@@ -1177,16 +1195,13 @@ public class AIClient {
 			helper.getHelp = true;
 			newInitialState.requestedPositions = positions;
 			sol = createSolution(getStrategy("astar", newInitialState), client, newInitialState);
-			
 
 			if (sol != null)
 				currentStates[inNeed.getID()].help = helper;	
 		}
-				
+		
 		solutions[helper.getID()] = sol;
-
 		currentStates[helper.getID()] = newInitialState;
-		updateRequirements(solutions[helper.getID()], helper.getID());
 	}
 
 	private static Node copyNode(Node n, Agent inNeed, Agent helper) {
@@ -1316,7 +1331,6 @@ public class AIClient {
 			if (solution != null) {
 				solutions[a.getID()] = solution;
 				currentStates[a.getID()] = initialState;
-				updateRequirements(solution, a.getID());
 			} else {
 				initialState.goToBox.inWorkingProcess = false;
 				initialState.goToBox = null;				
@@ -1389,7 +1403,6 @@ public class AIClient {
 			currentStates[a] = node;
 			
 			solutions[a].remove(0);
-			updateRequirements(solutions[a], a);
 			
 			if (solutions[a].isEmpty() && node.goToBox == null)
 				agentIDs[a].waiting = 4;
@@ -1400,18 +1413,6 @@ public class AIClient {
 		return "NoOp";
 	}
 	
-	private static void updateRequirements(ArrayList<Node> solution, int a) {
-		if(solution != null) {
-			for(int i = 1; i < requests[a].length; i++) {
-				if (solution.size() > i - 1) {
-					requests[a][i] = solution.get(i - 1).getRequired();
-				} else {
-					requests[a][i] = null;	
-				}
-			}
-		}
-	}
-
 	private static ArrayList<Node> createSolution(Strategy strategy, AIClient client, Node initialState) throws IOException {
 		ArrayList<Node> solution;
 		try {
